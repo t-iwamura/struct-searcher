@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from numpy.typing import NDArray
 
 
@@ -64,6 +66,9 @@ def create_lammps_command_file(potential_file: str) -> str:
     Returns:
         str: The content of lammps command file.
     """
+    # Convert relative path to absolute path
+    potential_file = str(Path(potential_file).resolve())
+
     # Read elements from potential
     with open(potential_file) as f:
         first_line = f.readline()
