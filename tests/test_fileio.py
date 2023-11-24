@@ -4,7 +4,7 @@ from struct_searcher.fileio import create_lammps_command_file, create_lammps_str
 def test_create_lammps_struct_file(
     system_params, frac_coords, dumped_lammps_struct_content
 ):
-    lammps_struct_content = create_lammps_struct_file(
+    content = create_lammps_struct_file(
         system_params["xhi"],
         system_params["yhi"],
         system_params["zhi"],
@@ -13,9 +13,9 @@ def test_create_lammps_struct_file(
         system_params["yz"],
         frac_coords,
     )
-    assert lammps_struct_content == dumped_lammps_struct_content
+    assert content == dumped_lammps_struct_content
 
 
 def test_create_lammps_command_file(potential_file, dumped_lammps_command_content):
-    lammps_command_content = create_lammps_command_file(potential_file)
-    assert lammps_command_content == dumped_lammps_command_content
+    content = create_lammps_command_file(potential_file)
+    assert content == dumped_lammps_command_content
