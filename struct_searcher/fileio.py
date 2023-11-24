@@ -53,3 +53,80 @@ def create_lammps_struct_file(
     content = "\n".join(lines)
 
     return content
+
+
+def create_lammps_command_file(potential_file: str) -> str:
+    """Create lammps command file
+
+    Args:
+        potential_file (str): The path of mlp.lammps.
+
+    Returns:
+        str: The content of lammps command file.
+    """
+    # Read elements from potential
+    with open(potential_file) as f:
+        first_line = f.readline()
+
+    elements = []
+    for item in first_line.split(" "):
+        if item == "#":
+            break
+
+        elements.append(item)
+    elements_str = " ".join(elements)
+
+    # Settings about relaxation
+    etol = 0.0
+    ftol = 1e-8
+    maxiter = 1000
+    maxeval = 100000
+    pressure = 0.0
+
+    lines = [
+        "box tilt large",
+        "atom_style atomic",
+        "",
+        "boundary p p p",
+        "read_data initial_structure",
+        "",
+        "pair_style polymlp",
+        f"pair_coeff * * {potential_file} {elements_str}",
+        "",
+        "# What to monitor during minimization",
+        "thermo 1",
+        "thermo_style custom step temp pe etotal press fnorm",
+        "thermo_modify norm no",
+        "",
+        "# Rebuild neighbor list at every timestep",
+        "neigh_modify delay 0 every 1 check yes",
+        "",
+        "# Move atoms only",
+        f"minimize {etol} {ftol} {maxiter} {maxeval}",
+        "reset_timestep 0",
+        "",
+        "# Do isotropic volume relaxation",
+        f"fix fiso all box/relax iso {pressure}",
+        f"minimize {etol} {ftol} {maxiter} {maxeval}",
+        "unfix fiso",
+        "reset_timestep 0",
+        "",
+        "# Do anisotropic volume relaxation without shear",
+        f"fix faniso all box/relax aniso {pressure}",
+        f"minimize {etol} {ftol} {maxiter} {maxeval}",
+        "unfix faniso",
+        "reset_timestep 0",
+        "",
+        "# Do anisotropic volume relaxation with shear",
+        f"fix ftri all box/relax tri {pressure}",
+        f"minimize {etol} {ftol} {maxiter} {maxeval}",
+        "unfix ftri",
+        "reset_timestep 0",
+        "",
+        "# Output final structure",
+        "write_data final_structure",
+        "",
+    ]
+    content = "\n".join(lines)
+
+    return content
