@@ -49,3 +49,19 @@ def dumped_lammps_struct_content() -> str:
     with lammps_struct_file_path.open("r") as f:
         content = f.read()
     return content
+
+
+@pytest.fixture()
+def potential_file() -> str:
+    potential_file_path = (
+        TESTS_DIR_PATH / "data" / "potentials" / "Al-Cu" / "gtinv-257" / "mlp.lammps"
+    )
+    return str(potential_file_path)
+
+
+@pytest.fixture()
+def dumped_lammps_command_content() -> str:
+    lammps_command_file_path = TESTS_DIR_PATH / "data" / "commands" / "in.lammps"
+    with lammps_command_file_path.open("r") as f:
+        content = f.read()
+    return content
