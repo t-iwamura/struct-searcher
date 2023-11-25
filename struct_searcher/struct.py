@@ -51,12 +51,12 @@ def convert_niggli_cell_to_system_params(niggli: List[float]) -> Dict[str, float
     return params
 
 
-def create_sample_struct_file(g_max: float, n_atom: int) -> str:
+def create_sample_struct_file(g_max: float, n_atom_for_each_type: List[int]) -> str:
     """Create sample structure file
 
     Args:
         g_max (float): The parameter, G_max.
-        n_atom (int): The number of atoms in unitcell.
+        n_atom_for_each_type (List[int]): The number of atoms for each type.
 
     Returns:
         str: The content of sample structure file.
@@ -66,8 +66,14 @@ def create_sample_struct_file(g_max: float, n_atom: int) -> str:
     system_params = convert_niggli_cell_to_system_params(niggli)
 
     # Create fractional coordinates of atoms
+    n_atom = sum(n_atom_for_each_type)
     frac_coords = np.random.rand(n_atom, 3)
     frac_coords[0, :] = 0.0
+
+    # Create type list for all the atoms
+    types = [
+        i for i, n_atom in enumerate(n_atom_for_each_type, 1) for _ in range(n_atom)
+    ]
 
     content = create_lammps_struct_file(
         system_params["xhi"],
@@ -77,5 +83,6 @@ def create_sample_struct_file(g_max: float, n_atom: int) -> str:
         system_params["xz"],
         system_params["yz"],
         frac_coords,
+        types,
     )
     return content
