@@ -68,6 +68,7 @@ def create_lammps_command_file(potential_file: str) -> str:
     """
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
+    struct_file = str(Path.cwd().resolve() / "initial_structure")
 
     # Read elements from potential
     with open(potential_file) as f:
@@ -93,7 +94,7 @@ def create_lammps_command_file(potential_file: str) -> str:
         "atom_style atomic",
         "",
         "boundary p p p",
-        "read_data initial_structure",
+        f"read_data {struct_file}",
         "",
         "pair_style polymlp",
         f"pair_coeff * * {potential_file} {elements_str}",
