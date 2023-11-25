@@ -30,6 +30,7 @@ def generate(g_max, potential_file) -> None:
 @main.command()
 @click.argument("structure_ids", nargs=-1)
 def relax_by_mlp(structure_ids) -> None:
+    """Relax multiple structures by polymlp"""
     structural_search_dir_path = (
         Path.cwd().parent.parent.resolve() / "structural_search"
     )
