@@ -9,6 +9,9 @@ def run_lammps(structure_dir_path: Path) -> None:
     Args:
         structure_dir_path (Path): Path object of structure directory.
     """
-    lmp = lammps()
+    # Settings about log
+    log_file_path = structure_dir_path / "log.lammps"
+    lmp = lammps(cmdargs=["-log", str(log_file_path), "-screen", "none"])
+
     command_file_path = structure_dir_path / "in.lammps"
     lmp.file(str(command_file_path))
