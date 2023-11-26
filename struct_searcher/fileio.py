@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 from numpy.typing import NDArray
 
@@ -57,18 +58,26 @@ def create_lammps_struct_file(
     return content
 
 
-def create_lammps_command_file(potential_file: str) -> str:
+def create_lammps_command_file(
+    potential_file: str, cwd_path: Optional[Path] = None
+) -> str:
     """Create lammps command file
 
     Args:
         potential_file (str): The path of mlp.lammps.
+        cwd_path (Optional[Path]): Path object of current working directory.
+            Defaults to None.
 
     Returns:
         str: The content of lammps command file.
     """
+    if cwd_path is None:
+        cwd_path = Path.cwd()
+
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
-    struct_file = str(Path.cwd().resolve() / "initial_structure")
+    initial_struct_file = str(cwd_path.resolve() / "initial_structure")
+    final_struct_file = str(cwd_path.resolve() / "final_structure")
 
     # Read elements from potential
     with open(potential_file) as f:
@@ -94,7 +103,7 @@ def create_lammps_command_file(potential_file: str) -> str:
         "atom_style atomic",
         "",
         "boundary p p p",
-        f"read_data {struct_file}",
+        f"read_data {initial_struct_file}",
         "",
         "pair_style polymlp",
         f"pair_coeff * * {potential_file} {elements_str}",
@@ -130,7 +139,7 @@ def create_lammps_command_file(potential_file: str) -> str:
         "reset_timestep 0",
         "",
         "# Output final structure",
-        "write_data final_structure",
+        f"write_data {final_struct_file}",
         "",
     ]
     content = "\n".join(lines)

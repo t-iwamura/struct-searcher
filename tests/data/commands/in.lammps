@@ -2,7 +2,7 @@ box tilt large
 atom_style atomic
 
 boundary p p p
-read_data initial_structure
+read_data /home/iwamura/struct-searcher/tests/data/structures/initial_structure
 
 pair_style polymlp
 pair_coeff * * /home/iwamura/struct-searcher/tests/data/potentials/Al-Cu/gtinv-257/mlp.lammps Al Cu
@@ -38,4 +38,4 @@ unfix ftri
 reset_timestep 0
 
 # Output final structure
-write_data final_structure
+write_data /home/iwamura/struct-searcher/tests/data/structures/final_structure

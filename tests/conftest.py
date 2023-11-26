@@ -9,6 +9,11 @@ TESTS_DIR_PATH = Path(__file__).resolve().parent
 
 
 @pytest.fixture()
+def struct_dir_path() -> Path:
+    return TESTS_DIR_PATH / "data" / "structures"
+
+
+@pytest.fixture()
 def system_params() -> Dict[str, float]:
     params = {
         "xhi": 1.9632841787984097,
