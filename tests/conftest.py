@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pytest
@@ -44,6 +44,15 @@ def frac_coords() -> NDArray:
         ]
     )
     return coords
+
+
+@pytest.fixture()
+def types() -> List[int]:
+    n_atom_for_each_type = [7, 4]
+    type_list = [
+        i for i, n_atom in enumerate(n_atom_for_each_type, 1) for _ in range(n_atom)
+    ]
+    return type_list
 
 
 @pytest.fixture()
