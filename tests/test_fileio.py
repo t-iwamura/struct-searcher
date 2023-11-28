@@ -2,7 +2,7 @@ from struct_searcher.fileio import create_lammps_command_file, create_lammps_str
 
 
 def test_create_lammps_struct_file(
-    system_params, frac_coords, types, dumped_lammps_struct_content
+    system_params, frac_coords, dumped_lammps_struct_content
 ):
     content = create_lammps_struct_file(
         system_params["xhi"],
@@ -12,7 +12,7 @@ def test_create_lammps_struct_file(
         system_params["xz"],
         system_params["yz"],
         frac_coords,
-        types,
+        [7, 4],
     )
     assert content == dumped_lammps_struct_content
 

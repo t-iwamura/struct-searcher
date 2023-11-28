@@ -72,11 +72,6 @@ def create_sample_struct_file(
     frac_coords = np.random.rand(n_atom, 3)
     frac_coords[0, :] = 0.0
 
-    # Create type list for all the atoms
-    types = [
-        i for i, n_atom in enumerate(n_atom_for_each_element, 1) for _ in range(n_atom)
-    ]
-
     content = create_lammps_struct_file(
         system_params["xhi"],
         system_params["yhi"],
@@ -85,6 +80,6 @@ def create_sample_struct_file(
         system_params["xz"],
         system_params["yz"],
         frac_coords,
-        types,
+        n_atom_for_each_element,
     )
     return content
