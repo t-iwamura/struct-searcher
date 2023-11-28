@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from numpy.typing import NDArray
 
@@ -61,26 +61,20 @@ def create_lammps_struct_file(
     return content
 
 
-def create_lammps_command_file(
-    potential_file: str, cwd_path: Optional[Path] = None
-) -> str:
+def create_lammps_command_file(potential_file: str, output_dir_path: Path) -> str:
     """Create lammps command file
 
     Args:
         potential_file (str): The path of mlp.lammps.
-        cwd_path (Optional[Path]): Path object of current working directory.
-            Defaults to None.
+        output_dir_path (Path): Path object of output directory.
 
     Returns:
         str: The content of lammps command file.
     """
-    if cwd_path is None:
-        cwd_path = Path.cwd()
-
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
-    initial_struct_file = str(cwd_path.resolve() / "initial_structure")
-    final_struct_file = str(cwd_path.resolve() / "final_structure")
+    initial_struct_file = str(output_dir_path.resolve() / "initial_structure")
+    final_struct_file = str(output_dir_path.resolve() / "final_structure")
 
     # Read elements from potential
     with open(potential_file) as f:
