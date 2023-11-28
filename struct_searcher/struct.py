@@ -1,6 +1,6 @@
 import random
 from math import sqrt
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -51,12 +51,14 @@ def convert_niggli_cell_to_system_params(niggli: List[float]) -> Dict[str, float
     return params
 
 
-def create_sample_struct_file(g_max: float, n_atom_for_each_type: List[int]) -> str:
+def create_sample_struct_file(
+    g_max: float, n_atom_for_each_element: Tuple[int, int]
+) -> str:
     """Create sample structure file
 
     Args:
         g_max (float): The parameter, G_max.
-        n_atom_for_each_type (List[int]): The number of atoms for each type.
+        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
 
     Returns:
         str: The content of sample structure file.
@@ -66,13 +68,13 @@ def create_sample_struct_file(g_max: float, n_atom_for_each_type: List[int]) -> 
     system_params = convert_niggli_cell_to_system_params(niggli)
 
     # Create fractional coordinates of atoms
-    n_atom = sum(n_atom_for_each_type)
+    n_atom = sum(n_atom_for_each_element)
     frac_coords = np.random.rand(n_atom, 3)
     frac_coords[0, :] = 0.0
 
     # Create type list for all the atoms
     types = [
-        i for i, n_atom in enumerate(n_atom_for_each_type, 1) for _ in range(n_atom)
+        i for i, n_atom in enumerate(n_atom_for_each_element, 1) for _ in range(n_atom)
     ]
 
     content = create_lammps_struct_file(

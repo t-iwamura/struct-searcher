@@ -1,11 +1,16 @@
+import json
+import re
 from pathlib import Path
 
 import click
 from joblib import Parallel, delayed
 
-from struct_searcher.bin import run_lammps
-from struct_searcher.fileio import create_lammps_command_file
-from struct_searcher.struct import create_sample_struct_file
+from struct_searcher.bin import generate_input_files_for_relaxation, run_lammps
+from struct_searcher.fileio import read_elements
+from struct_searcher.utils import create_formula_dir_path, create_n_atom_tuples
+
+INPUTS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs"
+PROCESSING_DIR_PATH = Path.home() / "struct-searcher" / "data" / "processing"
 
 
 @click.group()
@@ -14,17 +19,49 @@ def main() -> None:
 
 
 @main.command()
-@click.argument("n_atom_for_each_type", type=int, nargs=-1)
-@click.option("--g_max", default=30.0, help="The parameter, g_max.")
-@click.option("-p", "--potential_file", required=True, help="Path to mlp.lammps.")
-def generate(n_atom_for_each_type, g_max, potential_file) -> None:
-    lammps_struct_file_content = create_sample_struct_file(g_max, n_atom_for_each_type)
-    with open("initial_structure", "w") as f:
-        f.write(lammps_struct_file_content)
+@click.argument("system_name")
+@click.option(
+    "-n", "--n_atom", type=int, required=True, help="The number of atoms in unitcell."
+)
+def generate(system_name, n_atom) -> None:
+    """Generate 1000 sample structures for all the compositions"""
+    # Check a recommended potential for system
+    potential_id_json_path = PROCESSING_DIR_PATH / "potential_id.json"
+    with potential_id_json_path.open("r") as f:
+        potential_ids = json.load(f)
+    potential_file_path = (
+        INPUTS_DIR_PATH
+        / "potentials"
+        / system_name
+        / potential_ids[system_name]
+        / "mlp.lammps"
+    )
 
-    lammps_command_file_content = create_lammps_command_file(potential_file)
-    with open("in.lammps", "w") as f:
-        f.write(lammps_command_file_content)
+    n_atom_tuples = create_n_atom_tuples(n_atom)
+    elements = read_elements(system_name)
+    n_structure = 1000
+    for n_atom_for_each_element in n_atom_tuples:
+        # Calculate the begin ID of a sample structure
+        formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
+        existing_sids = sorted(
+            int(p.name)
+            for p in formula_dir_path.glob("*")
+            if re.search(r".*/\d{5}", str(p))
+        )
+        if len(existing_sids) == 0:
+            sid_begin = 1
+        else:
+            sid_begin = existing_sids[-1] + 1
+
+        _ = Parallel(n_jobs=-1, verbose=1)(
+            delayed(generate_input_files_for_relaxation)(
+                elements,
+                n_atom_for_each_element,
+                str(potential_file_path),
+                str(sid_begin + i).zfill(5),
+            )
+            for i in range(n_structure)
+        )
 
 
 @main.command()

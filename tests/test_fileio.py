@@ -20,5 +20,7 @@ def test_create_lammps_struct_file(
 def test_create_lammps_command_file(
     potential_file, struct_dir_path, dumped_lammps_command_content
 ):
-    content = create_lammps_command_file(potential_file, cwd_path=struct_dir_path)
+    content = create_lammps_command_file(
+        potential_file, output_dir_path=struct_dir_path
+    )
     assert content == dumped_lammps_command_content

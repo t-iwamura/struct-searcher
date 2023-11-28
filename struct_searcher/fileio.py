@@ -1,7 +1,53 @@
+import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from numpy.typing import NDArray
+
+INPUTS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs"
+PROCESSING_DIR_PATH = Path.home() / "struct-searcher" / "data" / "processing"
+
+
+def read_elements(
+    system_name: str, processing_dir_path: Optional[Path] = None
+) -> Tuple[str, str]:
+    """Read elements in the order defined in mlp.lammps
+
+    Args:
+        system_name (str): The name of a system.
+        processing_dir_path (Optional[Path], optional):
+            Path object of processing directory. Defaults to None.
+
+    Returns:
+        Tuple[str, str]: The elements keeping the order.
+    """
+    if processing_dir_path is None:
+        processing_dir_path = PROCESSING_DIR_PATH
+
+    # Read IDs of recommended potentials
+    potential_id_json_path = processing_dir_path / "potential_id.json"
+    with potential_id_json_path.open("r") as f:
+        potential_ids = json.load(f)
+
+    # Read elements from mlp.lammps
+    potential_file_path = (
+        INPUTS_DIR_PATH
+        / "potentials"
+        / system_name
+        / potential_ids[system_name]
+        / "mlp.lammps"
+    )
+    with potential_file_path.open("r") as f:
+        first_line = f.readline()
+
+    elements = []
+    for item in first_line.split():
+        if item == "#":
+            break
+
+        elements.append(item)
+
+    return tuple(elements)
 
 
 def create_lammps_struct_file(
@@ -61,26 +107,20 @@ def create_lammps_struct_file(
     return content
 
 
-def create_lammps_command_file(
-    potential_file: str, cwd_path: Optional[Path] = None
-) -> str:
+def create_lammps_command_file(potential_file: str, output_dir_path: Path) -> str:
     """Create lammps command file
 
     Args:
         potential_file (str): The path of mlp.lammps.
-        cwd_path (Optional[Path]): Path object of current working directory.
-            Defaults to None.
+        output_dir_path (Path): Path object of output directory.
 
     Returns:
         str: The content of lammps command file.
     """
-    if cwd_path is None:
-        cwd_path = Path.cwd()
-
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
-    initial_struct_file = str(cwd_path.resolve() / "initial_structure")
-    final_struct_file = str(cwd_path.resolve() / "final_structure")
+    initial_struct_file = str(output_dir_path.resolve() / "initial_structure")
+    final_struct_file = str(output_dir_path.resolve() / "final_structure")
 
     # Read elements from potential
     with open(potential_file) as f:

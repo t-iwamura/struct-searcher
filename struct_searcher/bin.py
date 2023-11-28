@@ -1,6 +1,45 @@
 from pathlib import Path
+from typing import Tuple
 
 from lammps import lammps
+
+from struct_searcher.fileio import create_lammps_command_file
+from struct_searcher.struct import create_sample_struct_file
+from struct_searcher.utils import create_formula_dir_path
+
+
+def generate_input_files_for_relaxation(
+    elements: Tuple[str, str],
+    n_atom_for_each_element: Tuple[int, int],
+    potential_file: str,
+    structure_id: str,
+    g_max: float = 30.0,
+) -> None:
+    """Generate input files for relaxation
+
+    Args:
+        elements (Tuple[str, str]): Tuple of element included in system.
+        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
+        potential_file (str): Path to a potential file.
+        structure_id (str): The ID of a sample structure.
+        g_max (float, optional): The parameter, g_max. Defaults to 30.0.
+    """
+    # Make output directory
+    formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
+    output_dir_path = formula_dir_path / structure_id
+    output_dir_path.mkdir(parents=True)
+
+    # Write sample structure file
+    content = create_sample_struct_file(g_max, n_atom_for_each_element)
+    struct_file_path = output_dir_path / "initial_structure"
+    with struct_file_path.open("w") as f:
+        f.write(content)
+
+    # Write lammps command file
+    content = create_lammps_command_file(potential_file, output_dir_path)
+    command_file_path = output_dir_path / "in.lammps"
+    with command_file_path.open("w") as f:
+        f.write(content)
 
 
 def run_lammps(structure_dir_path: Path) -> None:
