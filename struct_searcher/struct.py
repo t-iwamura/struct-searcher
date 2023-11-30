@@ -144,6 +144,7 @@ def create_sample_struct_file(
     Returns:
         str: The content of sample structure file.
     """
+    cnt = 0
     g_min = 0.0
     while True:
         # Create Niggli reduced cell
@@ -167,8 +168,9 @@ def create_sample_struct_file(
             lattice, frac_coords, elements, n_atom_for_each_element
         ):
             break
-        else:
-            g_min += g_max * 1e-3
+        elif cnt < 1000:
+            cnt += 1
+            g_min = (cnt / 1000) * g_max
 
     system_params = convert_niggli_cell_to_system_params(niggli)
     content = create_lammps_struct_file(
