@@ -1,4 +1,6 @@
-ATOM_INFO = {
+from typing import Dict
+
+ATOM_INFO: Dict[str, Dict[str, float]] = {
     "Ag": {
         "distance": 2.93,
         "energy_minimum": -2.528624732123176,

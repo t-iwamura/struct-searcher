@@ -1,11 +1,13 @@
 import json
 import re
+from math import pi
 from pathlib import Path
 
 import click
 from joblib import Parallel, delayed
 
 from struct_searcher.bin import generate_input_files_for_relaxation, run_lammps
+from struct_searcher.data import ATOM_INFO
 from struct_searcher.fileio import read_elements
 from struct_searcher.utils import create_formula_dir_path, create_n_atom_tuples
 
@@ -37,8 +39,12 @@ def generate(system_name, n_atom) -> None:
         / "mlp.lammps"
     )
 
-    n_atom_tuples = create_n_atom_tuples(n_atom)
+    # Calculate g_max
     elements = read_elements(system_name)
+    d = max(ATOM_INFO[e]["distance"] for e in elements)
+    g_max = (10 * 4 * pi * (0.5 * d) ** 3 / 3) ** (2 / 3)
+
+    n_atom_tuples = create_n_atom_tuples(n_atom)
     n_structure = 1000
     for n_atom_for_each_element in n_atom_tuples:
         # Calculate the begin ID of a sample structure
@@ -59,6 +65,7 @@ def generate(system_name, n_atom) -> None:
                 n_atom_for_each_element,
                 str(potential_file_path),
                 str(sid_begin + i).zfill(5),
+                g_max,
             )
             for i in range(n_structure)
         )
