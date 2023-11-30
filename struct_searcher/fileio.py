@@ -4,38 +4,33 @@ from typing import Optional, Tuple
 
 from numpy.typing import NDArray
 
-INPUTS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs"
-PROCESSING_DIR_PATH = Path.home() / "struct-searcher" / "data" / "processing"
+POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
 
 def read_elements(
-    system_name: str, processing_dir_path: Optional[Path] = None
+    system_name: str, potentials_dir_path: Optional[Path] = None
 ) -> Tuple[str, str]:
     """Read elements in the order defined in mlp.lammps
 
     Args:
         system_name (str): The name of a system.
-        processing_dir_path (Optional[Path], optional):
-            Path object of processing directory. Defaults to None.
+        potentials_dir_path (Optional[Path], optional):
+            Path object of potentials directory. Defaults to None.
 
     Returns:
         Tuple[str, str]: The elements keeping the order.
     """
-    if processing_dir_path is None:
-        processing_dir_path = PROCESSING_DIR_PATH
+    if potentials_dir_path is None:
+        potentials_dir_path = POTENTIALS_DIR_PATH
 
     # Read IDs of recommended potentials
-    potential_id_json_path = processing_dir_path / "potential_id.json"
+    potential_id_json_path = potentials_dir_path / "potential_id.json"
     with potential_id_json_path.open("r") as f:
         potential_ids = json.load(f)
 
     # Read elements from mlp.lammps
     potential_file_path = (
-        INPUTS_DIR_PATH
-        / "potentials"
-        / system_name
-        / potential_ids[system_name]
-        / "mlp.lammps"
+        potentials_dir_path / system_name / potential_ids[system_name] / "mlp.lammps"
     )
     with potential_file_path.open("r") as f:
         first_line = f.readline()

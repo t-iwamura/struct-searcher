@@ -11,8 +11,7 @@ from struct_searcher.data import ATOM_INFO
 from struct_searcher.fileio import read_elements
 from struct_searcher.utils import create_formula_dir_path, create_n_atom_tuples
 
-INPUTS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs"
-PROCESSING_DIR_PATH = Path.home() / "struct-searcher" / "data" / "processing"
+POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
 
 @click.group()
@@ -28,15 +27,11 @@ def main() -> None:
 def generate(system_name, n_atom) -> None:
     """Generate 1000 sample structures for all the compositions"""
     # Check a recommended potential for system
-    potential_id_json_path = PROCESSING_DIR_PATH / "potential_id.json"
+    potential_id_json_path = POTENTIALS_DIR_PATH / "potential_id.json"
     with potential_id_json_path.open("r") as f:
         potential_ids = json.load(f)
     potential_file_path = (
-        INPUTS_DIR_PATH
-        / "potentials"
-        / system_name
-        / potential_ids[system_name]
-        / "mlp.lammps"
+        POTENTIALS_DIR_PATH / system_name / potential_ids[system_name] / "mlp.lammps"
     )
 
     # Calculate g_max

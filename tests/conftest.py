@@ -14,6 +14,11 @@ def struct_dir_path() -> Path:
 
 
 @pytest.fixture()
+def potentials_dir_path() -> Path:
+    return TESTS_DIR_PATH / "data" / "potentials"
+
+
+@pytest.fixture()
 def system_params() -> Dict[str, float]:
     params = {
         "xhi": 1.9632841787984097,

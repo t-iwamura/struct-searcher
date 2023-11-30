@@ -1,4 +1,17 @@
-from struct_searcher.fileio import create_lammps_command_file, create_lammps_struct_file
+import pytest
+
+from struct_searcher.fileio import (
+    create_lammps_command_file,
+    create_lammps_struct_file,
+    read_elements,
+)
+
+
+@pytest.mark.parametrize(
+    ("system_name", "expected"), [("Al-Cu", ("Al", "Cu")), ("Na-Sn", ("Na", "Sn"))]
+)
+def test_read_elements(system_name, potentials_dir_path, expected):
+    assert read_elements(system_name, potentials_dir_path) == expected
 
 
 def test_create_lammps_struct_file(
