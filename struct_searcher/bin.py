@@ -13,7 +13,7 @@ def generate_input_files_for_relaxation(
     n_atom_for_each_element: Tuple[int, int],
     potential_file: str,
     structure_id: str,
-    g_max: float = 30.0,
+    g_max: float,
 ) -> None:
     """Generate input files for relaxation
 
@@ -22,7 +22,7 @@ def generate_input_files_for_relaxation(
         n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
         potential_file (str): Path to a potential file.
         structure_id (str): The ID of a sample structure.
-        g_max (float, optional): The parameter, g_max. Defaults to 30.0.
+        g_max (float): The parameter to control volume maximum.
     """
     # Make output directory
     formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
@@ -30,7 +30,7 @@ def generate_input_files_for_relaxation(
     output_dir_path.mkdir(parents=True)
 
     # Write sample structure file
-    content = create_sample_struct_file(g_max, n_atom_for_each_element)
+    content = create_sample_struct_file(g_max, elements, n_atom_for_each_element)
     struct_file_path = output_dir_path / "initial_structure"
     with struct_file_path.open("w") as f:
         f.write(content)
