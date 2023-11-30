@@ -3,6 +3,7 @@
 
 ### Private Settings ###
 /data/
+/exp/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
