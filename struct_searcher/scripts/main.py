@@ -42,7 +42,7 @@ def generate(system_name, n_atom) -> None:
     # Calculate g_max
     elements = read_elements(system_name)
     d = max(ATOM_INFO[e]["distance"] for e in elements)
-    g_max = (10 * 4 * pi * (0.5 * d) ** 3 / 3) ** (2 / 3)
+    g_max = (n_atom * 10 * 4 * pi * (0.5 * d) ** 3 / 3) ** (2 / 3)
 
     n_atom_tuples = create_n_atom_tuples(n_atom)
     n_structure = 1000
