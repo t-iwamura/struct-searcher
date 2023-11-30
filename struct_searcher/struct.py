@@ -3,6 +3,7 @@ from math import acos, degrees, sqrt
 from typing import Dict, List, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 from pymatgen.core import Lattice, Structure
 
 from struct_searcher.data import ATOM_INFO
@@ -92,6 +93,44 @@ def convert_niggli_cell_to_lattice_constants(niggli: List[float]) -> Tuple[float
     return a, b, c, alpha, beta, gamma
 
 
+def has_enough_space_between_atoms(
+    lattice: Lattice,
+    frac_coords: NDArray,
+    elements: Tuple[str, str],
+    n_atom_for_each_element: Tuple[int, int],
+) -> bool:
+    """Check if a structure has enough space between atoms
+
+    Args:
+        lattice (Lattice): Lattice object of a structure.
+        frac_coords (NDArray): The fractional coordinates of the atoms.
+        elements (Tuple[str, str]): Tuple of element in a structure.
+        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
+
+    Returns:
+        bool: The result of a check.
+    """
+    # Create Structure object
+    species = [
+        elements[i]
+        for i, n_atom in enumerate(n_atom_for_each_element)
+        for _ in range(n_atom)
+    ]
+    distances = Structure(lattice, species, frac_coords).distance_matrix
+
+    # Calculate the minimum of atomic distances
+    min_distance = 100000
+    n_atom = distances.shape[0]
+    for i in range(n_atom):
+        for j in range(i + 1, n_atom):
+            if distances[i, j] < min_distance:
+                min_distance = distances[i, j]
+
+    d = max(ATOM_INFO[e]["distance"] for e in elements)
+
+    return min_distance >= 0.75 * d
+
+
 def create_sample_struct_file(
     g_max: float, elements: Tuple[str, str], n_atom_for_each_element: Tuple[int, int]
 ) -> str:
@@ -124,16 +163,9 @@ def create_sample_struct_file(
         if n_atom == 1:
             break
 
-        species = [
-            elements[i]
-            for i, n_atom in enumerate(n_atom_for_each_element)
-            for _ in range(n_atom)
-        ]
-        structure = Structure(lattice, species, frac_coords)
-        min_distance = np.min(structure.distance_matrix)
-        d = max(ATOM_INFO[e]["distance"] for e in elements)
-
-        if min_distance >= 0.75 * d:
+        if has_enough_space_between_atoms(
+            lattice, frac_coords, elements, n_atom_for_each_element
+        ):
             break
         else:
             g_min += g_max * 1e-3
