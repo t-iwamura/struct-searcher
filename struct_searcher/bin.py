@@ -3,9 +3,9 @@ from typing import List
 
 from lammps import lammps
 
-from struct_searcher.fileio import create_lammps_command_file
+from struct_searcher.fileio import create_job_script, create_lammps_command_file
 from struct_searcher.struct import create_sample_struct_file
-from struct_searcher.utils import create_formula_dir_path
+from struct_searcher.utils import calc_begin_id_of_dir, create_formula_dir_path
 
 
 def generate_input_files_for_relaxation(
@@ -26,7 +26,7 @@ def generate_input_files_for_relaxation(
     """
     # Make output directory
     formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
-    output_dir_path = formula_dir_path / structure_id
+    output_dir_path = formula_dir_path / "multi_start" / structure_id
     output_dir_path.mkdir(parents=True)
 
     # Write sample structure file
@@ -41,6 +41,33 @@ def generate_input_files_for_relaxation(
     )
     command_file_path = output_dir_path / "in.lammps"
     with command_file_path.open("w") as f:
+        f.write(content)
+
+
+def write_job_script(
+    elements: List[str], n_atom_for_each_element: List[int], begin_sid: int
+) -> None:
+    """Write job script
+
+    Args:
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+        begin_sid (int): The begin ID of a structure.
+    """
+    # Make job_scripts directory
+    formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
+    job_scripts_dir_path = formula_dir_path / "job_scripts"
+    if not job_scripts_dir_path.exists():
+        job_scripts_dir_path.mkdir()
+
+    # Make output directory
+    begin_jid = calc_begin_id_of_dir(job_scripts_dir_path, n_digit=3)
+    output_dir_path = job_scripts_dir_path / str(begin_jid).zfill(3)
+    output_dir_path.mkdir()
+
+    content = create_job_script(job_name=formula_dir_path.name, first_sid=begin_sid)
+    job_script_path = output_dir_path / "job.sh"
+    with job_script_path.open("w") as f:
         f.write(content)
 
 
