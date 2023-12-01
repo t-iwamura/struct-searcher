@@ -155,8 +155,8 @@ def create_lammps_command_file(
     # Settings about relaxation
     etol = 0.0
     ftol = 1e-8
-    maxiter = 1000
-    maxeval = 100000
+    maxiter = 5000
+    maxeval = 50000
     pressure = 0.0
 
     lines = [
@@ -178,32 +178,50 @@ def create_lammps_command_file(
         "# Rebuild neighbor list at every timestep",
         "neigh_modify delay 0 every 1 check yes one 100000 page 1000000",
         "",
-        "# Move atoms only",
-        f"minimize {etol} {ftol} {maxiter} {maxeval}",
-        "reset_timestep 0",
-        "",
-        "# Do isotropic volume relaxation",
-        f"fix fiso all box/relax iso {pressure}",
-        f"minimize {etol} {ftol} {maxiter} {maxeval}",
-        "unfix fiso",
-        "reset_timestep 0",
-        "",
-        "# Do anisotropic volume relaxation without shear",
-        f"fix faniso all box/relax aniso {pressure}",
-        f"minimize {etol} {ftol} {maxiter} {maxeval}",
-        "unfix faniso",
-        "reset_timestep 0",
-        "",
-        "# Do anisotropic volume relaxation with shear",
-        f"fix ftri all box/relax tri {pressure}",
-        f"minimize {etol} {ftol} {maxiter} {maxeval}",
-        "unfix ftri",
-        "reset_timestep 0",
-        "",
+    ]
+
+    n_atom = sum(n_atom_for_each_element)
+    if n_atom < 10:
+        relaxation_section = [
+            "# Do relaxation with a bunch of degrees of freedom",
+            f"fix ftri all box/relax tri {pressure}",
+            f"minimize 0.0 1e-8 {maxiter} {maxeval}",
+            "",
+        ]
+    else:
+        relaxation_section = [
+            "# Move atoms only",
+            f"minimize {etol} {ftol} {maxiter} {maxeval}",
+            "reset_timestep 0",
+            "",
+            "# Do isotropic volume relaxation",
+            f"fix fiso all box/relax iso {pressure}",
+            f"minimize {etol} {ftol} {maxiter} {maxeval}",
+            "unfix fiso",
+            "reset_timestep 0",
+            "",
+            "# Do anisotropic volume relaxation without shear",
+            f"fix faniso all box/relax aniso {pressure}",
+            f"minimize {etol} {ftol} {maxiter} {maxeval}",
+            "unfix faniso",
+            "reset_timestep 0",
+            "",
+            "# Do anisotropic volume relaxation with shear",
+            f"fix ftri all box/relax tri {pressure}",
+            f"minimize {etol} {ftol} {maxiter} {maxeval}",
+            "unfix ftri",
+            "reset_timestep 0",
+            "",
+        ]
+
+    save_section = [
         "# Output final structure",
         f"write_data {final_struct_file}",
         "",
     ]
+
+    lines.extend(relaxation_section)
+    lines.extend(save_section)
     content = "\n".join(lines)
 
     return content

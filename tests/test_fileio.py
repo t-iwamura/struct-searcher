@@ -61,7 +61,13 @@ def dumped_lammps_command_content(request):
 
 @pytest.mark.parametrize(
     ("n_atom_for_each_element", "dumped_lammps_command_content"),
-    [([7, 4], "Ti7-Al4"), ([11, 0], "Ti"), ([0, 11], "Al")],
+    [
+        ([7, 4], "Ti7-Al4"),
+        ([11, 0], "Ti"),
+        ([0, 11], "Al"),
+        ([4, 6], "Ti4-Al6"),
+        ([2, 7], "Ti2-Al7"),
+    ],
     indirect=["dumped_lammps_command_content"],
 )
 def test_create_lammps_command_file(
