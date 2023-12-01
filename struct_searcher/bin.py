@@ -36,7 +36,9 @@ def generate_input_files_for_relaxation(
         f.write(content)
 
     # Write lammps command file
-    content = create_lammps_command_file(potential_file, output_dir_path)
+    content = create_lammps_command_file(
+        potential_file, elements, n_atom_for_each_element, output_dir_path
+    )
     command_file_path = output_dir_path / "in.lammps"
     with command_file_path.open("w") as f:
         f.write(content)
