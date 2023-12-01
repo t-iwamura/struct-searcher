@@ -182,6 +182,7 @@ def create_sample_struct_file(
         system_params["xz"],
         system_params["yz"],
         frac_coords,
+        elements,
         n_atom_for_each_element,
     )
     return content
