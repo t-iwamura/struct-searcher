@@ -125,11 +125,18 @@ def create_lammps_struct_file(
     return content
 
 
-def create_lammps_command_file(potential_file: str, output_dir_path: Path) -> str:
+def create_lammps_command_file(
+    potential_file: str,
+    elements: List[str],
+    n_atom_for_each_element: List[int],
+    output_dir_path: Path,
+) -> str:
     """Create lammps command file
 
     Args:
         potential_file (str): The path of mlp.lammps.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
         output_dir_path (Path): Path object of output directory.
 
     Returns:
@@ -140,17 +147,10 @@ def create_lammps_command_file(potential_file: str, output_dir_path: Path) -> st
     initial_struct_file = str(output_dir_path.resolve() / "initial_structure")
     final_struct_file = str(output_dir_path.resolve() / "final_structure")
 
-    # Read elements from potential
-    with open(potential_file) as f:
-        first_line = f.readline()
-
-    elements = []
-    for item in first_line.split(" "):
-        if item == "#":
-            break
-
-        elements.append(item)
-    elements_str = " ".join(elements)
+    # Choose the element which exists
+    elements_str = " ".join(
+        e for e, n in zip(elements, n_atom_for_each_element) if n != 0
+    )
 
     # Settings about relaxation
     etol = 0.0

@@ -11,6 +11,7 @@ from struct_searcher.fileio import (
 TESTS_DIR_PATH = Path(__file__).resolve().parent
 STRUCT_DIR_PATH = TESTS_DIR_PATH / "data" / "structures"
 POTENTIALS_DIR_PATH = TESTS_DIR_PATH / "data" / "potentials"
+COMMANDS_DIR_PATH = TESTS_DIR_PATH / "data" / "commands"
 
 
 @pytest.mark.parametrize(
@@ -50,8 +51,26 @@ def test_create_lammps_struct_file(
     assert content == dumped_lammps_struct_content
 
 
-def test_create_lammps_command_file(potential_file, dumped_lammps_command_content):
+@pytest.fixture()
+def dumped_lammps_command_content(request):
+    lammps_command_file_path = COMMANDS_DIR_PATH / request.param / "in.lammps"
+    with lammps_command_file_path.open("r") as f:
+        content = f.read()
+    return content
+
+
+@pytest.mark.parametrize(
+    ("n_atom_for_each_element", "dumped_lammps_command_content"),
+    [([7, 4], "Ti7-Al4"), ([11, 0], "Ti"), ([0, 11], "Al")],
+    indirect=["dumped_lammps_command_content"],
+)
+def test_create_lammps_command_file(
+    potential_file, n_atom_for_each_element, dumped_lammps_command_content
+):
     content = create_lammps_command_file(
-        potential_file, output_dir_path=STRUCT_DIR_PATH
+        potential_file,
+        ["Ti", "Al"],
+        n_atom_for_each_element,
+        output_dir_path=STRUCT_DIR_PATH,
     )
     assert content == dumped_lammps_command_content

@@ -6,7 +6,7 @@ boundary p p p
 read_data /home/iwamura/struct-searcher/tests/data/structures/initial_structure
 
 pair_style polymlp
-pair_coeff * * /home/iwamura/struct-searcher/tests/data/potentials/Al-Cu/gtinv-257/mlp.lammps Al Cu
+pair_coeff * * /home/iwamura/struct-searcher/tests/data/potentials/Ti-Al/gtinv-411/mlp.lammps Ti
 
 # What to monitor during minimization
 thermo 1
