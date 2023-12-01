@@ -7,7 +7,7 @@ import click
 from joblib import Parallel, delayed
 
 from struct_searcher.bin import generate_input_files_for_relaxation, run_lammps
-from struct_searcher.data import ATOM_INFO
+from struct_searcher.data import load_atom_info
 from struct_searcher.fileio import read_elements
 from struct_searcher.utils import create_formula_dir_path, create_n_atom_tuples
 
@@ -36,7 +36,8 @@ def generate(system_name, n_atom) -> None:
 
     # Calculate g_max
     elements = read_elements(system_name)
-    d = max(ATOM_INFO[e]["distance"] for e in elements)
+    atom_info = load_atom_info()
+    d = max(atom_info[e]["distance"] for e in elements)
     g_max = (n_atom * 10 * 4 * pi * (0.5 * d) ** 3 / 3) ** (2 / 3)
 
     n_atom_tuples = create_n_atom_tuples(n_atom)

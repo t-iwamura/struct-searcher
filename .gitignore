@@ -2,7 +2,8 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode
 
 ### Private Settings ###
-/data/
+/data/inputs/
+/data/outputs/
 /exp/
 
 ### Python ###

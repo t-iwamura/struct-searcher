@@ -4,6 +4,8 @@ from typing import Optional, Tuple
 
 from numpy.typing import NDArray
 
+from struct_searcher.data import load_atom_info
+
 POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
 
@@ -53,6 +55,7 @@ def create_lammps_struct_file(
     xz: float,
     yz: float,
     frac_coords: NDArray,
+    elements: Tuple[str, str],
     n_atom_for_each_element: Tuple[int, int],
 ) -> str:
     """Create structure file for LAMMPS
@@ -66,6 +69,7 @@ def create_lammps_struct_file(
         yz (float): The tilt parameter.
         frac_coords (NDArray): The fractional coordinates of all the atoms.
             The shape is (n_atom, 3).
+        elements (Tuple[str, str]): Tuple of element included in system.
         n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
 
     Returns:
@@ -88,6 +92,13 @@ def create_lammps_struct_file(
         "",
     ]
 
+    # Create Masses section
+    masses_section = ["Masses", ""]
+    atom_info = load_atom_info()
+    for i, e in enumerate(elements, 1):
+        masses_section.append(f"{i} {atom_info[e]['mass']:.8f}")
+    masses_section.append("")
+
     # Create type list for all the atoms
     types = [
         i for i, n_atom in enumerate(n_atom_for_each_element, 1) for _ in range(n_atom)
@@ -101,6 +112,7 @@ def create_lammps_struct_file(
         atoms_section.append(line)
     atoms_section.append("")
 
+    lines.extend(masses_section)
     lines.extend(atoms_section)
     content = "\n".join(lines)
 

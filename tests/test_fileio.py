@@ -25,7 +25,8 @@ def test_create_lammps_struct_file(
         system_params["xz"],
         system_params["yz"],
         frac_coords,
-        [7, 4],
+        ("Ti", "Al"),
+        (7, 4),
     )
     assert content == dumped_lammps_struct_content
 
