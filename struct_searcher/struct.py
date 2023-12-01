@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pymatgen.core import Lattice, Structure
 
-from struct_searcher.data import ATOM_INFO
+from struct_searcher.data import load_atom_info
 from struct_searcher.fileio import create_lammps_struct_file
 
 
@@ -126,7 +126,8 @@ def has_enough_space_between_atoms(
             if distances[i, j] < min_distance:
                 min_distance = distances[i, j]
 
-    d = max(ATOM_INFO[e]["distance"] for e in elements)
+    atom_info = load_atom_info()
+    d = max(atom_info[e]["distance"] for e in elements)
 
     return min_distance >= 0.75 * d
 
