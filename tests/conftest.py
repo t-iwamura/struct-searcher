@@ -9,16 +9,6 @@ TESTS_DIR_PATH = Path(__file__).resolve().parent
 
 
 @pytest.fixture()
-def struct_dir_path() -> Path:
-    return TESTS_DIR_PATH / "data" / "structures"
-
-
-@pytest.fixture()
-def potentials_dir_path() -> Path:
-    return TESTS_DIR_PATH / "data" / "potentials"
-
-
-@pytest.fixture()
 def system_params() -> Dict[str, float]:
     params = {
         "xhi": 1.9632841787984097,
@@ -49,16 +39,6 @@ def frac_coords() -> NDArray:
         ]
     )
     return coords
-
-
-@pytest.fixture()
-def dumped_lammps_struct_content() -> str:
-    lammps_struct_file_path = (
-        TESTS_DIR_PATH / "data" / "structures" / "lammps_structure"
-    )
-    with lammps_struct_file_path.open("r") as f:
-        content = f.read()
-    return content
 
 
 @pytest.fixture()

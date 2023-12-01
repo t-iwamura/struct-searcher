@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional
 
 from numpy.typing import NDArray
 
@@ -11,7 +11,7 @@ POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "pot
 
 def read_elements(
     system_name: str, potentials_dir_path: Optional[Path] = None
-) -> Tuple[str, str]:
+) -> List[str]:
     """Read elements in the order defined in mlp.lammps
 
     Args:
@@ -20,7 +20,7 @@ def read_elements(
             Path object of potentials directory. Defaults to None.
 
     Returns:
-        Tuple[str, str]: The elements keeping the order.
+        List[str]: The elements keeping the order.
     """
     if potentials_dir_path is None:
         potentials_dir_path = POTENTIALS_DIR_PATH
@@ -44,7 +44,7 @@ def read_elements(
 
         elements.append(item)
 
-    return tuple(elements)
+    return elements
 
 
 def create_lammps_struct_file(
@@ -55,8 +55,8 @@ def create_lammps_struct_file(
     xz: float,
     yz: float,
     frac_coords: NDArray,
-    elements: Tuple[str, str],
-    n_atom_for_each_element: Tuple[int, int],
+    elements: List[str],
+    n_atom_for_each_element: List[int],
 ) -> str:
     """Create structure file for LAMMPS
 
@@ -69,12 +69,18 @@ def create_lammps_struct_file(
         yz (float): The tilt parameter.
         frac_coords (NDArray): The fractional coordinates of all the atoms.
             The shape is (n_atom, 3).
-        elements (Tuple[str, str]): Tuple of element included in system.
-        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
 
     Returns:
         str: The content of a structure file.
     """
+    # Remove elements which don't exist
+    elements = [
+        e for e, n_atom in zip(elements, n_atom_for_each_element) if n_atom != 0
+    ]
+    n_atom_for_each_element = [n for n in n_atom_for_each_element if n != 0]
+
     # Create system section
     n_atom = frac_coords.shape[0]
     n_type = len(n_atom_for_each_element)

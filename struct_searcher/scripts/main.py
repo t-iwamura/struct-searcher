@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 from struct_searcher.bin import generate_input_files_for_relaxation, run_lammps
 from struct_searcher.data import load_atom_info
 from struct_searcher.fileio import read_elements
-from struct_searcher.utils import create_formula_dir_path, create_n_atom_tuples
+from struct_searcher.utils import create_formula_dir_path, create_n_atom_lists
 
 POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
@@ -40,9 +40,9 @@ def generate(system_name, n_atom) -> None:
     d = max(atom_info[e]["distance"] for e in elements)
     g_max = (n_atom * 10 * 4 * pi * (0.5 * d) ** 3 / 3) ** (2 / 3)
 
-    n_atom_tuples = create_n_atom_tuples(n_atom)
+    n_atom_lists = create_n_atom_lists(n_atom)
     n_structure = 1000
-    for n_atom_for_each_element in n_atom_tuples:
+    for n_atom_for_each_element in n_atom_lists:
         # Calculate the begin ID of a sample structure
         formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
         existing_sids = sorted(

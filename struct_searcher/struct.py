@@ -96,16 +96,16 @@ def convert_niggli_cell_to_lattice_constants(niggli: List[float]) -> Tuple[float
 def has_enough_space_between_atoms(
     lattice: Lattice,
     frac_coords: NDArray,
-    elements: Tuple[str, str],
-    n_atom_for_each_element: Tuple[int, int],
+    elements: List[str],
+    n_atom_for_each_element: List[int],
 ) -> bool:
     """Check if a structure has enough space between atoms
 
     Args:
         lattice (Lattice): Lattice object of a structure.
         frac_coords (NDArray): The fractional coordinates of the atoms.
-        elements (Tuple[str, str]): Tuple of element in a structure.
-        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
+        elements (List[str]): List of element in a structure.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
 
     Returns:
         bool: The result of a check.
@@ -133,14 +133,14 @@ def has_enough_space_between_atoms(
 
 
 def create_sample_struct_file(
-    g_max: float, elements: Tuple[str, str], n_atom_for_each_element: Tuple[int, int]
+    g_max: float, elements: List[str], n_atom_for_each_element: List[int]
 ) -> str:
     """Create sample structure file
 
     Args:
         g_max (float): The parameter to control volume maximum.
-        elements (Tuple[str, str]): Tuple of element included in system.
-        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
 
     Returns:
         str: The content of sample structure file.

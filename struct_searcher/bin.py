@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Tuple
+from typing import List
 
 from lammps import lammps
 
@@ -9,8 +9,8 @@ from struct_searcher.utils import create_formula_dir_path
 
 
 def generate_input_files_for_relaxation(
-    elements: Tuple[str, str],
-    n_atom_for_each_element: Tuple[int, int],
+    elements: List[str],
+    n_atom_for_each_element: List[int],
     potential_file: str,
     structure_id: str,
     g_max: float,
@@ -18,8 +18,8 @@ def generate_input_files_for_relaxation(
     """Generate input files for relaxation
 
     Args:
-        elements (Tuple[str, str]): Tuple of element included in system.
-        n_atom_for_each_element (Tuple[int, int]): The number of atoms for each element.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
         potential_file (str): Path to a potential file.
         structure_id (str): The ID of a sample structure.
         g_max (float): The parameter to control volume maximum.
