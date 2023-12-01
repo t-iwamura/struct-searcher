@@ -1,3 +1,4 @@
+units metal
 box tilt large
 atom_style atomic
 
@@ -13,7 +14,7 @@ thermo_style custom step temp pe etotal press fnorm
 thermo_modify norm no
 
 # Rebuild neighbor list at every timestep
-neigh_modify delay 0 every 1 check yes
+neigh_modify delay 0 every 1 check yes one 100000 page 1000000
 
 # Move atoms only
 minimize 0.0 1e-08 1000 100000

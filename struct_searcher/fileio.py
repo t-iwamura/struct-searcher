@@ -160,6 +160,7 @@ def create_lammps_command_file(potential_file: str, output_dir_path: Path) -> st
     pressure = 0.0
 
     lines = [
+        "units metal",
         "box tilt large",
         "atom_style atomic",
         "",
@@ -175,7 +176,7 @@ def create_lammps_command_file(potential_file: str, output_dir_path: Path) -> st
         "thermo_modify norm no",
         "",
         "# Rebuild neighbor list at every timestep",
-        "neigh_modify delay 0 every 1 check yes",
+        "neigh_modify delay 0 every 1 check yes one 100000 page 1000000",
         "",
         "# Move atoms only",
         f"minimize {etol} {ftol} {maxiter} {maxeval}",
