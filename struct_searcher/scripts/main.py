@@ -5,7 +5,11 @@ from pathlib import Path
 import click
 from joblib import Parallel, delayed
 
-from struct_searcher.bin import generate_input_files_for_relaxation, run_lammps
+from struct_searcher.bin import (
+    generate_input_files_for_relaxation,
+    run_lammps,
+    write_job_script,
+)
 from struct_searcher.data import load_atom_info
 from struct_searcher.fileio import read_elements
 from struct_searcher.utils import (
@@ -60,6 +64,8 @@ def generate(system_name, n_atom) -> None:
             )
             for i in range(n_structure)
         )
+
+        write_job_script(elements, n_atom_for_each_element, begin_sid)
 
 
 @main.command()

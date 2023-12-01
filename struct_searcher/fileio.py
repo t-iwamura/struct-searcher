@@ -225,3 +225,39 @@ def create_lammps_command_file(
     content = "\n".join(lines)
 
     return content
+
+
+def create_job_script(job_name: str, first_sid: int) -> str:
+    """Create job script
+
+    Args:
+        job_name (str): The name of a job.
+        first_sid (int): The ID of first structure.
+
+    Returns:
+        str: The content of a job script.
+    """
+    # Create pattern of sample structure directories
+    n_structure = 1000
+    last_sid = first_sid + n_structure - 1
+    dir_pattern = "".join(
+        ["{", str(first_sid).zfill(5), "..", str(last_sid).zfill(5), "}"]
+    )
+
+    lines = [
+        "#!/bin/zsh",
+        f"#SBATCH -J {job_name}",
+        "#SBATCH --nodes=1",
+        "#SBATCH -e err.log",
+        "#SBATCH -o std.log",
+        "#SBATCH --open-mode=append",
+        "",
+        ". ~/.zprofile",
+        ". ~/.zshrc",
+        "pyenv activate structural_search",
+        f"struct-searcher relax-by-mlp {dir_pattern}",
+        "",
+    ]
+    content = "\n".join(lines)
+
+    return content
