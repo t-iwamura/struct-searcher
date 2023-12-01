@@ -71,9 +71,7 @@ def generate(system_name, n_atom) -> None:
 @click.argument("structure_ids", nargs=-1)
 def relax_by_mlp(structure_ids) -> None:
     """Relax multiple structures by polymlp"""
-    structural_search_dir_path = (
-        Path.cwd().parent.parent.resolve() / "structural_search"
-    )
+    structural_search_dir_path = Path.cwd().parent.parent.resolve() / "multi_start"
     structure_dir_path_list = [
         structural_search_dir_path / structure_id for structure_id in structure_ids
     ]

@@ -26,7 +26,7 @@ def generate_input_files_for_relaxation(
     """
     # Make output directory
     formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
-    output_dir_path = formula_dir_path / structure_id
+    output_dir_path = formula_dir_path / "multi_start" / structure_id
     output_dir_path.mkdir(parents=True)
 
     # Write sample structure file

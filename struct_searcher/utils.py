@@ -33,6 +33,6 @@ def create_formula_dir_path(
     n_atom_id = str(sum(n_atom_for_each_element)).zfill(2)
     formula = "-".join(f"{e}{n}" for e, n in zip(elements, n_atom_for_each_element))
     formula_dir_path = (
-        OUTPUTS_DIR_PATH / system_name / "multi-start" / f"n_atom_{n_atom_id}" / formula
+        OUTPUTS_DIR_PATH / system_name / "csp" / f"n_atom_{n_atom_id}" / formula
     )
     return formula_dir_path
