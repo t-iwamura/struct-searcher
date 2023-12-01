@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import List
 
@@ -36,3 +37,26 @@ def create_formula_dir_path(
         OUTPUTS_DIR_PATH / system_name / "csp" / f"n_atom_{n_atom_id}" / formula
     )
     return formula_dir_path
+
+
+def calc_begin_id_of_dir(root_dir_path: Path, n_digit: int) -> int:
+    """Calculate begin ID of a child directory
+
+    Args:
+        root_dir_path (Path): Object of root directory.
+        n_digit (int): The number of digits in ID.
+
+    Returns:
+        int: The begin ID of a child directory.
+    """
+    existing_ids = sorted(
+        int(p.name)
+        for p in root_dir_path.glob("*")
+        if re.search(rf".*/\d{{{n_digit}}}", str(p))
+    )
+    if len(existing_ids) == 0:
+        begin_id = 1
+    else:
+        begin_id = existing_ids[-1] + 1
+
+    return begin_id

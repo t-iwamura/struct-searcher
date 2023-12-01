@@ -1,5 +1,4 @@
 import json
-import re
 from math import pi
 from pathlib import Path
 
@@ -9,7 +8,11 @@ from joblib import Parallel, delayed
 from struct_searcher.bin import generate_input_files_for_relaxation, run_lammps
 from struct_searcher.data import load_atom_info
 from struct_searcher.fileio import read_elements
-from struct_searcher.utils import create_formula_dir_path, create_n_atom_lists
+from struct_searcher.utils import (
+    calc_begin_id_of_dir,
+    create_formula_dir_path,
+    create_n_atom_lists,
+)
 
 POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
@@ -45,22 +48,14 @@ def generate(system_name, n_atom) -> None:
     for n_atom_for_each_element in n_atom_lists:
         # Calculate the begin ID of a sample structure
         formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
-        existing_sids = sorted(
-            int(p.name)
-            for p in formula_dir_path.glob("*")
-            if re.search(r".*/\d{5}", str(p))
-        )
-        if len(existing_sids) == 0:
-            sid_begin = 1
-        else:
-            sid_begin = existing_sids[-1] + 1
+        begin_sid = calc_begin_id_of_dir(formula_dir_path, n_digit=5)
 
         _ = Parallel(n_jobs=-1, verbose=1)(
             delayed(generate_input_files_for_relaxation)(
                 elements,
                 n_atom_for_each_element,
                 str(potential_file_path),
-                str(sid_begin + i).zfill(5),
+                str(begin_sid + i).zfill(5),
                 g_max,
             )
             for i in range(n_structure)
