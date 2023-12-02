@@ -3,7 +3,7 @@ box tilt large
 atom_style atomic
 
 boundary p p p
-read_data /home/iwamura/struct-searcher/tests/data/structures/initial_structure
+read_data /home/iwamura/struct-searcher/tests/data/structures/initial_structure_01
 
 pair_style polymlp
 pair_coeff * * /home/iwamura/struct-searcher/tests/data/potentials/Ti-Al/gtinv-411/mlp.lammps Ti Al
@@ -18,7 +18,7 @@ neigh_modify delay 0 every 1 check yes one 100000 page 1000000
 
 # Do relaxation with a bunch of degrees of freedom
 fix ftri all box/relax tri 0.0
-minimize 0.0 1e-8 5000 50000
+minimize 0.0 1e-08 50000 500000
 
 # Output final structure
-write_data /home/iwamura/struct-searcher/tests/data/structures/final_structure
+write_data /home/iwamura/struct-searcher/tests/data/structures/final_structure_01

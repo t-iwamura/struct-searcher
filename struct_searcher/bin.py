@@ -2,9 +2,16 @@ from pathlib import Path
 from typing import List
 
 from lammps import lammps
+from pymatgen.io.lammps.data import LammpsData
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
-from struct_searcher.fileio import create_job_script, create_lammps_command_file
-from struct_searcher.struct import create_sample_struct_file
+from struct_searcher.fileio import (
+    create_job_script,
+    create_lammps_command_file,
+    create_lammps_struct_file_from_structure,
+    create_sample_struct_file,
+    parse_lammps_log,
+)
 from struct_searcher.utils import calc_begin_id_of_dir, create_formula_dir_path
 
 
@@ -31,15 +38,32 @@ def generate_input_files_for_relaxation(
 
     # Write sample structure file
     content = create_sample_struct_file(g_max, elements, n_atom_for_each_element)
-    struct_file_path = output_dir_path / "initial_structure"
+    struct_file_path = output_dir_path / "initial_structure_01"
     with struct_file_path.open("w") as f:
         f.write(content)
 
-    # Write lammps command file
+    # Write lammps command files
     content = create_lammps_command_file(
-        potential_file, elements, n_atom_for_each_element, output_dir_path
+        potential_file,
+        elements,
+        n_atom_for_each_element,
+        output_dir_path,
+        ftol=1e-03,
+        relaxation_id="01",
     )
-    command_file_path = output_dir_path / "in.lammps"
+    command_file_path = output_dir_path / "in_01.lammps"
+    with command_file_path.open("w") as f:
+        f.write(content)
+
+    content = create_lammps_command_file(
+        potential_file,
+        elements,
+        n_atom_for_each_element,
+        output_dir_path,
+        ftol=1e-08,
+        relaxation_id="02",
+    )
+    command_file_path = output_dir_path / "in_02.lammps"
     with command_file_path.open("w") as f:
         f.write(content)
 
@@ -71,15 +95,49 @@ def write_job_script(
         f.write(content)
 
 
-def run_lammps(structure_dir_path: Path) -> None:
+def run_lammps(structure_dir_path: Path, relaxation_id: str = "00") -> None:
     """Run LAMMPS
 
     Args:
         structure_dir_path (Path): Path object of structure directory.
+        relaxation_id (str, optional): The ID of relaxation. Defaults to '00'.
     """
     # Settings about log
     log_file_path = structure_dir_path / "log.lammps"
+    if relaxation_id != "00":
+        log_file_path = structure_dir_path / f"log_{relaxation_id}.lammps"
     lmp = lammps(cmdargs=["-log", str(log_file_path), "-screen", "none"])
 
     command_file_path = structure_dir_path / "in.lammps"
+    if relaxation_id != "00":
+        command_file_path = structure_dir_path / f"in_{relaxation_id}.lammps"
     lmp.file(str(command_file_path))
+
+
+def relax_step_by_step(structure_dir_path: Path) -> None:
+    """Relax a structure step by step
+
+    Args:
+        structure_dir_path (Path): Object of structure directory.
+    """
+    # Do easy relaxation
+    run_lammps(structure_dir_path, relaxation_id="01")
+
+    calc_stats = parse_lammps_log(str(structure_dir_path / "log_01.lammps"))
+    if calc_stats["criterion"] != "force tolerance":
+        return
+
+    # Refine the structure after 1st relaxation
+    structure = LammpsData.from_file(
+        str(structure_dir_path / "final_structure_01"), atom_style="atomic"
+    ).structure
+    analyzer = SpacegroupAnalyzer(structure, symprec=1e-05, angle_tolerance=-1.0)
+    refined_structure = analyzer.get_refined_structure()
+
+    content = create_lammps_struct_file_from_structure(refined_structure)
+    struct_file_path = structure_dir_path / "initial_structure_02"
+    with struct_file_path.open("w") as f:
+        f.write(content)
+
+    # Do hard relaxation
+    run_lammps(structure_dir_path, relaxation_id="02")

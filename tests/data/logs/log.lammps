@@ -1,0 +1,98 @@
+LAMMPS (23 Jun 2022)
+  using 1 OpenMP thread(s) per MPI task
+units metal
+box tilt large
+atom_style atomic
+
+boundary p p p
+read_data /home/iwamura/struct-searcher/data/outputs/Ti-Al/csp/n_atom_04/Ti3-Al1/multi_start/00001/initial_structure
+Reading data file ...
+  triclinic box = (0 0 0) to (5.6180144 6.3538707 7.0030504) with tilt (1.7067388 0.58002563 1.2974865)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  4 atoms
+  read_data CPU = 0.043 seconds
+
+pair_style polymlp
+pair_coeff * * /home/iwamura/struct-searcher/data/inputs/potentials/Ti-Al/gtinv-411/mlp.lammps Ti Al
+
+# What to monitor during minimization
+thermo 1
+thermo_style custom step temp pe etotal press fnorm
+thermo_modify norm no
+
+# Rebuild neighbor list at every timestep
+neigh_modify delay 0 every 1 check yes one 100000 page 1000000
+
+# Do relaxation with a bunch of degrees of freedom
+fix ftri all box/relax tri 0.0
+minimize 0.0 1e-8 5000 50000
+Generated 0 of 1 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 100000, page size: 1000000
+  master list distance cutoff = 8
+  ghost atom cutoff = 8
+  binsize = 4, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair polymlp, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 7.516 | 7.516 | 7.516 Mbytes
+   Step          Temp          PotEng         TotEng         Press          Fnorm
+         0   0              3061.3282      3061.3282      31880586       41368.226
+         1   0              3048.591       3048.591       31748469       41368.093
+         2   0              3035.8506      3035.8506      31616307       41367.979
+         3   0              3023.1069      3023.1069      31484101       41367.883
+         4   0              3010.36        3010.36        31351851       41367.802
+         5   0              2997.6098      2997.6098      31219555       41367.734
+                                        .
+                                        .
+                                        .
+      4996   0             -205413.09     -205413.09     -3.3026177e+08  10983700
+      4997   0             -205416.13     -205416.13     -3.3025114e+08  11695836
+      4998   0             -205419.97     -205419.97     -3.3025114e+08  8502256.4
+      4999   0             -205420.05     -205420.05     -3.3025019e+08  9094012.8
+      5000   0             -205421.87     -205421.87     -3.3025139e+08  2244903.5
+Loop time of 175.757 on 1 procs for 5000 steps with 4 atoms
+
+99.3% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+Minimization stats:
+  Stopping criterion = max iterations
+  Energy initial, next-to-last, final =
+      3061.32820659552  -205420.048187591  -205421.873984693
+  Force two-norm initial, final = 45096.08 2248107.7
+  Force max component initial, final = 24406.985 1298341.8
+  Final line search alpha, max atom move = 8.6458154e-13 1.1225223e-06
+  Iterations, force evaluations = 5000 38259
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 174.86     | 174.86     | 174.86     |   0.0 | 99.49
+Neigh   | 3.7858e-05 | 3.7858e-05 | 3.7858e-05 |   0.0 |  0.00
+Comm    | 0.26785    | 0.26785    | 0.26785    |   0.0 |  0.15
+Output  | 0.088415   | 0.088415   | 0.088415   |   0.0 |  0.05
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.5427     |            |       |  0.31
+
+Nlocal:              4 ave           4 max           4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            252 ave         252 max         252 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:             78 ave          78 max          78 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 78
+Ave neighs/atom = 19.5
+Neighbor list builds = 1
+Dangerous builds = 0
+
+# Output final structure
+write_data /home/iwamura/struct-searcher/data/outputs/Ti-Al/csp/n_atom_04/Ti3-Al1/multi_start/00001/final_structure
+System init for write_data ...
+Generated 0 of 1 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:02:56

@@ -1,10 +1,20 @@
 import json
+import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
+import numpy as np
 from numpy.typing import NDArray
+from pymatgen.core import Lattice, Structure
 
 from struct_searcher.data import load_atom_info
+from struct_searcher.struct import (
+    convert_lattice_constants_to_niggli_cell,
+    convert_niggli_cell_to_lattice_constants,
+    convert_niggli_cell_to_system_params,
+    create_niggli_cell,
+    has_enough_space_between_atoms,
+)
 
 POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
@@ -125,11 +135,105 @@ def create_lammps_struct_file(
     return content
 
 
+def create_lammps_struct_file_from_structure(structure: Structure) -> str:
+    """Create structure file for LAMMPS from Structure object
+
+    Args:
+        structure (Structure): Object representing a structure.
+
+    Returns:
+        str: The content of a structure file.
+    """
+    # Ensure elements in a structure are sorted
+    structure.sort()
+
+    # Create system parameters
+    a, b, c, alpha, beta, gamma = structure.lattice.parameters
+    niggli = convert_lattice_constants_to_niggli_cell(a, b, c, alpha, beta, gamma)
+    system_params = convert_niggli_cell_to_system_params(niggli)
+
+    # Create objects related to elements
+    species = [e.symbol for e in structure.species]
+    elements = list(set(species))
+    n_atom_for_each_element = [species.count(e) for e in elements]
+
+    content = create_lammps_struct_file(
+        system_params["xhi"],
+        system_params["yhi"],
+        system_params["zhi"],
+        system_params["xy"],
+        system_params["xz"],
+        system_params["yz"],
+        structure.frac_coords,
+        elements,
+        n_atom_for_each_element,
+    )
+    return content
+
+
+def create_sample_struct_file(
+    g_max: float, elements: List[str], n_atom_for_each_element: List[int]
+) -> str:
+    """Create sample structure file
+
+    Args:
+        g_max (float): The parameter to control volume maximum.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+
+    Returns:
+        str: The content of sample structure file.
+    """
+    cnt = 0
+    g_min = 0.0
+    while True:
+        # Create Niggli reduced cell
+        niggli = create_niggli_cell(g_max, g_min)
+
+        # Check that the volume of Niggli cell isn't too large
+        a, b, c, alpha, beta, gamma = convert_niggli_cell_to_lattice_constants(niggli)
+        lattice = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
+        if lattice.volume >= g_max ** (3 / 2):
+            continue
+
+        # Create fractional coordinates of atoms
+        n_atom = sum(n_atom_for_each_element)
+        frac_coords = np.random.rand(n_atom, 3)
+        frac_coords[0, :] = 0.0
+
+        if n_atom == 1:
+            break
+
+        if has_enough_space_between_atoms(
+            lattice, frac_coords, elements, n_atom_for_each_element
+        ):
+            break
+        elif cnt < 1000:
+            cnt += 1
+            g_min = (cnt / 1000) * g_max
+
+    system_params = convert_niggli_cell_to_system_params(niggli)
+    content = create_lammps_struct_file(
+        system_params["xhi"],
+        system_params["yhi"],
+        system_params["zhi"],
+        system_params["xy"],
+        system_params["xz"],
+        system_params["yz"],
+        frac_coords,
+        elements,
+        n_atom_for_each_element,
+    )
+    return content
+
+
 def create_lammps_command_file(
     potential_file: str,
     elements: List[str],
     n_atom_for_each_element: List[int],
     output_dir_path: Path,
+    ftol: float,
+    relaxation_id: str = "01",
 ) -> str:
     """Create lammps command file
 
@@ -138,14 +242,20 @@ def create_lammps_command_file(
         elements (List[str]): List of element included in system.
         n_atom_for_each_element (List[int]): The number of atoms for each element.
         output_dir_path (Path): Path object of output directory.
+        ftol (float): The tolerance for global force vector.
+        relaxation_id (str, optional): The ID of relaxation. Defaults to '01'.
 
     Returns:
         str: The content of lammps command file.
     """
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
-    initial_struct_file = str(output_dir_path.resolve() / "initial_structure")
-    final_struct_file = str(output_dir_path.resolve() / "final_structure")
+    initial_struct_file = str(
+        output_dir_path.resolve() / f"initial_structure_{relaxation_id}"
+    )
+    final_struct_file = str(
+        output_dir_path.resolve() / f"final_structure_{relaxation_id}"
+    )
 
     # Choose the element which exists
     elements_str = " ".join(
@@ -154,9 +264,8 @@ def create_lammps_command_file(
 
     # Settings about relaxation
     etol = 0.0
-    ftol = 1e-8
-    maxiter = 5000
-    maxeval = 50000
+    maxiter = 50000
+    maxeval = 500000
     pressure = 0.0
 
     lines = [
@@ -185,7 +294,7 @@ def create_lammps_command_file(
         relaxation_section = [
             "# Do relaxation with a bunch of degrees of freedom",
             f"fix ftri all box/relax tri {pressure}",
-            f"minimize 0.0 1e-8 {maxiter} {maxeval}",
+            f"minimize 0.0 {ftol} {maxiter} {maxeval}",
             "",
         ]
     else:
@@ -261,3 +370,26 @@ def create_job_script(job_name: str, first_sid: int) -> str:
     content = "\n".join(lines)
 
     return content
+
+
+def parse_lammps_log(log_file: str) -> Dict[str, str]:
+    """Parse LAMMPS log file
+
+    Args:
+        log_file (str): The path to log.lammps.
+
+    Returns:
+        Dict[str, str]: Dict storing calculation stats.
+    """
+    pattern = re.compile(r".*Stopping criterion = (.*)")
+    with open(log_file) as f:
+        for line in f:
+            m = pattern.match(line)
+            if m:
+                break
+    assert m is not None
+
+    calc_stats = {}
+    calc_stats["criterion"] = m.group(1).rstrip()
+
+    return calc_stats

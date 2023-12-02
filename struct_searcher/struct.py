@@ -1,13 +1,11 @@
 import random
-from math import acos, degrees, sqrt
+from math import acos, cos, degrees, radians, sqrt
 from typing import Dict, List, Tuple
 
-import numpy as np
 from numpy.typing import NDArray
 from pymatgen.core import Lattice, Structure
 
 from struct_searcher.data import load_atom_info
-from struct_searcher.fileio import create_lammps_struct_file
 
 
 def create_niggli_cell(g_max: float, g_min: float = 0.0) -> List[float]:
@@ -75,6 +73,20 @@ def _calc_angle_from_inner_product(a: float, b: float, val: float) -> float:
     return angle
 
 
+def _calc_inner_product(a: float, b: float, angle: float) -> float:
+    """Calculate inner product
+
+    Args:
+        a (float): The norm of first vector.
+        b (float): The norm of second vector.
+        angle (float): The angle in units of degree.
+
+    Returns:
+        float: The inner product of the vectors.
+    """
+    return a * b * cos(radians(angle))
+
+
 def convert_niggli_cell_to_lattice_constants(niggli: List[float]) -> Tuple[float, ...]:
     """Convert Niggli reduced cell to lattice constants
 
@@ -91,6 +103,32 @@ def convert_niggli_cell_to_lattice_constants(niggli: List[float]) -> Tuple[float
     beta = _calc_angle_from_inner_product(c, a, niggli[4])
     alpha = _calc_angle_from_inner_product(b, c, niggli[5])
     return a, b, c, alpha, beta, gamma
+
+
+def convert_lattice_constants_to_niggli_cell(
+    a: float, b: float, c: float, alpha: float, beta: float, gamma: float
+) -> List[float]:
+    """Convert lattice constants to Niggli reduced cell
+
+    Args:
+        a (float): The length of 1st lattice vector.
+        b (float): The length of 2nd lattice vector.
+        c (float): The length of 3rd lattice vector.
+        alpha (float): The angle between b and c.
+        beta (float): The angle between c and a.
+        gamma (float): The angle between a and b.
+
+    Returns:
+        List[float]: List which represents Niggli reduced cell.
+    """
+    niggli = []
+    niggli.append(a**2)
+    niggli.append(b**2)
+    niggli.append(c**2)
+    niggli.append(_calc_inner_product(a, b, gamma))
+    niggli.append(_calc_inner_product(c, a, beta))
+    niggli.append(_calc_inner_product(b, c, alpha))
+    return niggli
 
 
 def has_enough_space_between_atoms(
@@ -130,59 +168,3 @@ def has_enough_space_between_atoms(
     d = max(atom_info[e]["distance"] for e in elements)
 
     return min_distance >= 0.75 * d
-
-
-def create_sample_struct_file(
-    g_max: float, elements: List[str], n_atom_for_each_element: List[int]
-) -> str:
-    """Create sample structure file
-
-    Args:
-        g_max (float): The parameter to control volume maximum.
-        elements (List[str]): List of element included in system.
-        n_atom_for_each_element (List[int]): The number of atoms for each element.
-
-    Returns:
-        str: The content of sample structure file.
-    """
-    cnt = 0
-    g_min = 0.0
-    while True:
-        # Create Niggli reduced cell
-        niggli = create_niggli_cell(g_max, g_min)
-
-        # Check that the volume of Niggli cell isn't too large
-        a, b, c, alpha, beta, gamma = convert_niggli_cell_to_lattice_constants(niggli)
-        lattice = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
-        if lattice.volume >= g_max ** (3 / 2):
-            continue
-
-        # Create fractional coordinates of atoms
-        n_atom = sum(n_atom_for_each_element)
-        frac_coords = np.random.rand(n_atom, 3)
-        frac_coords[0, :] = 0.0
-
-        if n_atom == 1:
-            break
-
-        if has_enough_space_between_atoms(
-            lattice, frac_coords, elements, n_atom_for_each_element
-        ):
-            break
-        elif cnt < 1000:
-            cnt += 1
-            g_min = (cnt / 1000) * g_max
-
-    system_params = convert_niggli_cell_to_system_params(niggli)
-    content = create_lammps_struct_file(
-        system_params["xhi"],
-        system_params["yhi"],
-        system_params["zhi"],
-        system_params["xy"],
-        system_params["xz"],
-        system_params["yz"],
-        frac_coords,
-        elements,
-        n_atom_for_each_element,
-    )
-    return content
