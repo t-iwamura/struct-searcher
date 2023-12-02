@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 
 from struct_searcher.bin import (
     generate_input_files_for_relaxation,
-    run_lammps,
+    relax_step_by_step,
     write_job_script,
 )
 from struct_searcher.data import load_atom_info
@@ -79,5 +79,5 @@ def relax_by_mlp(structure_ids) -> None:
 
     # Run relaxation of multiple structures by polymlp
     _ = Parallel(n_jobs=-1, verbose=1)(
-        delayed(run_lammps)(path) for path in structure_dir_path_list
+        delayed(relax_step_by_step)(path) for path in structure_dir_path_list
     )
