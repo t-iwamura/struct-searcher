@@ -5,6 +5,7 @@ import pytest
 from struct_searcher.fileio import (
     create_lammps_command_file,
     create_lammps_struct_file,
+    parse_lammps_log,
     read_elements,
 )
 
@@ -12,6 +13,7 @@ TESTS_DIR_PATH = Path(__file__).resolve().parent
 STRUCT_DIR_PATH = TESTS_DIR_PATH / "data" / "structures"
 POTENTIALS_DIR_PATH = TESTS_DIR_PATH / "data" / "potentials"
 COMMANDS_DIR_PATH = TESTS_DIR_PATH / "data" / "commands"
+LOGS_DIR_PATH = TESTS_DIR_PATH / "data" / "logs"
 
 
 @pytest.mark.parametrize(
@@ -81,3 +83,7 @@ def test_create_lammps_command_file(
         ftol=1e-08,
     )
     assert content == dumped_lammps_command_content
+
+
+def test_parse_lammps_log(calc_stats):
+    assert parse_lammps_log(str(LOGS_DIR_PATH / "log.lammps")) == calc_stats

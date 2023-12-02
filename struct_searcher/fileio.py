@@ -1,6 +1,7 @@
 import json
+import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -369,3 +370,26 @@ def create_job_script(job_name: str, first_sid: int) -> str:
     content = "\n".join(lines)
 
     return content
+
+
+def parse_lammps_log(log_file: str) -> Dict[str, str]:
+    """Parse LAMMPS log file
+
+    Args:
+        log_file (str): The path to log.lammps.
+
+    Returns:
+        Dict[str, str]: Dict storing calculation stats.
+    """
+    pattern = re.compile(r".*Stopping criterion = (.*)")
+    with open(log_file) as f:
+        for line in f:
+            m = pattern.match(line)
+            if m:
+                break
+    assert m is not None
+
+    calc_stats = {}
+    calc_stats["criterion"] = m.group(1).rstrip()
+
+    return calc_stats
