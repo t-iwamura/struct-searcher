@@ -3,8 +3,11 @@ from typing import List
 
 from lammps import lammps
 
-from struct_searcher.fileio import create_job_script, create_lammps_command_file
-from struct_searcher.struct import create_sample_struct_file
+from struct_searcher.fileio import (
+    create_job_script,
+    create_lammps_command_file,
+    create_sample_struct_file,
+)
 from struct_searcher.utils import calc_begin_id_of_dir, create_formula_dir_path
 
 

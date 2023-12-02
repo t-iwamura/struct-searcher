@@ -2,9 +2,18 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
+import numpy as np
 from numpy.typing import NDArray
+from pymatgen.core import Lattice, Structure
 
 from struct_searcher.data import load_atom_info
+from struct_searcher.struct import (
+    convert_lattice_constants_to_niggli_cell,
+    convert_niggli_cell_to_lattice_constants,
+    convert_niggli_cell_to_system_params,
+    create_niggli_cell,
+    has_enough_space_between_atoms,
+)
 
 POTENTIALS_DIR_PATH = Path.home() / "struct-searcher" / "data" / "inputs" / "potentials"
 
@@ -122,6 +131,98 @@ def create_lammps_struct_file(
     lines.extend(atoms_section)
     content = "\n".join(lines)
 
+    return content
+
+
+def create_lammps_struct_file_from_structure(structure: Structure) -> str:
+    """Create structure file for LAMMPS from Structure object
+
+    Args:
+        structure (Structure): Object representing a structure.
+
+    Returns:
+        str: The content of a structure file.
+    """
+    # Ensure elements in a structure are sorted
+    structure.sort()
+
+    # Create system parameters
+    a, b, c, alpha, beta, gamma = structure.lattice.parameters
+    niggli = convert_lattice_constants_to_niggli_cell(a, b, c, alpha, beta, gamma)
+    system_params = convert_niggli_cell_to_system_params(niggli)
+
+    # Create objects related to elements
+    species = [e.symbol for e in structure.species]
+    elements = list(set(species))
+    n_atom_for_each_element = [species.count(e) for e in elements]
+
+    content = create_lammps_struct_file(
+        system_params["xhi"],
+        system_params["yhi"],
+        system_params["zhi"],
+        system_params["xy"],
+        system_params["xz"],
+        system_params["yz"],
+        structure.frac_coords,
+        elements,
+        n_atom_for_each_element,
+    )
+    return content
+
+
+def create_sample_struct_file(
+    g_max: float, elements: List[str], n_atom_for_each_element: List[int]
+) -> str:
+    """Create sample structure file
+
+    Args:
+        g_max (float): The parameter to control volume maximum.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+
+    Returns:
+        str: The content of sample structure file.
+    """
+    cnt = 0
+    g_min = 0.0
+    while True:
+        # Create Niggli reduced cell
+        niggli = create_niggli_cell(g_max, g_min)
+
+        # Check that the volume of Niggli cell isn't too large
+        a, b, c, alpha, beta, gamma = convert_niggli_cell_to_lattice_constants(niggli)
+        lattice = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
+        if lattice.volume >= g_max ** (3 / 2):
+            continue
+
+        # Create fractional coordinates of atoms
+        n_atom = sum(n_atom_for_each_element)
+        frac_coords = np.random.rand(n_atom, 3)
+        frac_coords[0, :] = 0.0
+
+        if n_atom == 1:
+            break
+
+        if has_enough_space_between_atoms(
+            lattice, frac_coords, elements, n_atom_for_each_element
+        ):
+            break
+        elif cnt < 1000:
+            cnt += 1
+            g_min = (cnt / 1000) * g_max
+
+    system_params = convert_niggli_cell_to_system_params(niggli)
+    content = create_lammps_struct_file(
+        system_params["xhi"],
+        system_params["yhi"],
+        system_params["zhi"],
+        system_params["xy"],
+        system_params["xz"],
+        system_params["yz"],
+        frac_coords,
+        elements,
+        n_atom_for_each_element,
+    )
     return content
 
 
