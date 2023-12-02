@@ -130,6 +130,8 @@ def create_lammps_command_file(
     elements: List[str],
     n_atom_for_each_element: List[int],
     output_dir_path: Path,
+    ftol: float,
+    relaxation_id: str = "01",
 ) -> str:
     """Create lammps command file
 
@@ -138,14 +140,20 @@ def create_lammps_command_file(
         elements (List[str]): List of element included in system.
         n_atom_for_each_element (List[int]): The number of atoms for each element.
         output_dir_path (Path): Path object of output directory.
+        ftol (float): The tolerance for global force vector.
+        relaxation_id (str, optional): The ID of relaxation. Defaults to '01'.
 
     Returns:
         str: The content of lammps command file.
     """
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
-    initial_struct_file = str(output_dir_path.resolve() / "initial_structure")
-    final_struct_file = str(output_dir_path.resolve() / "final_structure")
+    initial_struct_file = str(
+        output_dir_path.resolve() / f"initial_structure_{relaxation_id}"
+    )
+    final_struct_file = str(
+        output_dir_path.resolve() / f"final_structure_{relaxation_id}"
+    )
 
     # Choose the element which exists
     elements_str = " ".join(
@@ -154,9 +162,8 @@ def create_lammps_command_file(
 
     # Settings about relaxation
     etol = 0.0
-    ftol = 1e-8
-    maxiter = 5000
-    maxeval = 50000
+    maxiter = 50000
+    maxeval = 500000
     pressure = 0.0
 
     lines = [
@@ -185,7 +192,7 @@ def create_lammps_command_file(
         relaxation_section = [
             "# Do relaxation with a bunch of degrees of freedom",
             f"fix ftri all box/relax tri {pressure}",
-            f"minimize 0.0 1e-8 {maxiter} {maxeval}",
+            f"minimize 0.0 {ftol} {maxiter} {maxeval}",
             "",
         ]
     else:

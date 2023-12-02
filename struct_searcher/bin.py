@@ -31,15 +31,32 @@ def generate_input_files_for_relaxation(
 
     # Write sample structure file
     content = create_sample_struct_file(g_max, elements, n_atom_for_each_element)
-    struct_file_path = output_dir_path / "initial_structure"
+    struct_file_path = output_dir_path / "initial_structure_01"
     with struct_file_path.open("w") as f:
         f.write(content)
 
-    # Write lammps command file
+    # Write lammps command files
     content = create_lammps_command_file(
-        potential_file, elements, n_atom_for_each_element, output_dir_path
+        potential_file,
+        elements,
+        n_atom_for_each_element,
+        output_dir_path,
+        ftol=1e-03,
+        relaxation_id="01",
     )
-    command_file_path = output_dir_path / "in.lammps"
+    command_file_path = output_dir_path / "in_01.lammps"
+    with command_file_path.open("w") as f:
+        f.write(content)
+
+    content = create_lammps_command_file(
+        potential_file,
+        elements,
+        n_atom_for_each_element,
+        output_dir_path,
+        ftol=1e-08,
+        relaxation_id="02",
+    )
+    command_file_path = output_dir_path / "in_02.lammps"
     with command_file_path.open("w") as f:
         f.write(content)
 

@@ -78,5 +78,6 @@ def test_create_lammps_command_file(
         ["Ti", "Al"],
         n_atom_for_each_element,
         output_dir_path=STRUCT_DIR_PATH,
+        ftol=1e-08,
     )
     assert content == dumped_lammps_command_content
