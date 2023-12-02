@@ -52,7 +52,7 @@ def generate(system_name, n_atom) -> None:
     for n_atom_for_each_element in n_atom_lists:
         # Calculate the begin ID of a sample structure
         formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
-        begin_sid = calc_begin_id_of_dir(formula_dir_path, n_digit=5)
+        begin_sid = calc_begin_id_of_dir(formula_dir_path / "multi_start", n_digit=5)
 
         _ = Parallel(n_jobs=-1, verbose=1)(
             delayed(generate_input_files_for_relaxation)(
