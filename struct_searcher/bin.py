@@ -120,24 +120,29 @@ def relax_step_by_step(structure_dir_path: Path) -> None:
     Args:
         structure_dir_path (Path): Object of structure directory.
     """
-    # Do easy relaxation
-    run_lammps(structure_dir_path, relaxation_id="01")
+    try:
+        # Do easy relaxation
+        run_lammps(structure_dir_path, relaxation_id="01")
 
-    calc_stats = parse_lammps_log(str(structure_dir_path / "log_01.lammps"))
-    if calc_stats["criterion"] != "force tolerance":
-        return
+        calc_stats = parse_lammps_log(str(structure_dir_path / "log_01.lammps"))
+        if calc_stats["criterion"] != "force tolerance":
+            return
 
-    # Refine the structure after 1st relaxation
-    structure = LammpsData.from_file(
-        str(structure_dir_path / "final_structure_01"), atom_style="atomic"
-    ).structure
-    analyzer = SpacegroupAnalyzer(structure, symprec=1e-05, angle_tolerance=-1.0)
-    refined_structure = analyzer.get_refined_structure()
+        # Refine the structure after 1st relaxation
+        structure = LammpsData.from_file(
+            str(structure_dir_path / "final_structure_01"), atom_style="atomic"
+        ).structure
+        analyzer = SpacegroupAnalyzer(structure, symprec=1e-05, angle_tolerance=-1.0)
+        refined_structure = analyzer.get_refined_structure()
 
-    content = create_lammps_struct_file_from_structure(refined_structure)
-    struct_file_path = structure_dir_path / "initial_structure_02"
-    with struct_file_path.open("w") as f:
-        f.write(content)
+        content = create_lammps_struct_file_from_structure(refined_structure)
+        struct_file_path = structure_dir_path / "initial_structure_02"
+        with struct_file_path.open("w") as f:
+            f.write(content)
 
-    # Do hard relaxation
-    run_lammps(structure_dir_path, relaxation_id="02")
+        # Do hard relaxation
+        run_lammps(structure_dir_path, relaxation_id="02")
+    except Exception as e:
+        err_log_path = structure_dir_path / "err.log"
+        with err_log_path.open("w") as f:
+            print(e, file=f)
