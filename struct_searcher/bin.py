@@ -138,22 +138,26 @@ def generate_new_lammps_command_file(
         f.write(content)
 
 
-def run_lammps(structure_dir_path: Path, relaxation_id: str = "00") -> None:
+def run_lammps(
+    structure_dir_path: Path, relaxation_id: str = "00", output_dir_id: str = "01"
+) -> None:
     """Run LAMMPS
 
     Args:
         structure_dir_path (Path): Path object of structure directory.
         relaxation_id (str, optional): The ID of relaxation. Defaults to '00'.
+        output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
     """
     # Settings about log
-    log_file_path = structure_dir_path / "log.lammps"
+    output_dir_path = structure_dir_path / output_dir_id
+    log_file_path = output_dir_path / "log.lammps"
     if relaxation_id != "00":
-        log_file_path = structure_dir_path / f"log_{relaxation_id}.lammps"
+        log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
     lmp = lammps(cmdargs=["-log", str(log_file_path), "-screen", "none"])
 
-    command_file_path = structure_dir_path / "in.lammps"
+    command_file_path = output_dir_path / "in.lammps"
     if relaxation_id != "00":
-        command_file_path = structure_dir_path / f"in_{relaxation_id}.lammps"
+        command_file_path = output_dir_path / f"in_{relaxation_id}.lammps"
     lmp.file(str(command_file_path))
 
 

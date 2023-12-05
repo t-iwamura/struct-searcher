@@ -11,6 +11,7 @@ from struct_searcher.bin import (
     generate_input_files_for_relaxation,
     generate_new_lammps_command_file,
     relax_step_by_step,
+    run_lammps,
     write_job_script,
 )
 from struct_searcher.data import load_atom_info
@@ -117,7 +118,16 @@ def change_config(structure_ids, ftol) -> None:
 
 @main.command()
 @click.argument("structure_ids", nargs=-1)
-def relax_by_mlp(structure_ids) -> None:
+@click.option(
+    "--once/--no-once", show_default=True, help="Whether to relax just once or not."
+)
+@click.option(
+    "--output_dir_id",
+    default="01",
+    show_default=True,
+    help="The ID of output directory.",
+)
+def relax_by_mlp(structure_ids, once, output_dir_id) -> None:
     """Relax multiple structures by polymlp"""
     structural_search_dir_path = Path.cwd().parent.parent.resolve() / "multi_start"
     structure_dir_path_list = [
@@ -125,6 +135,12 @@ def relax_by_mlp(structure_ids) -> None:
     ]
 
     # Run relaxation of multiple structures by polymlp
-    _ = Parallel(n_jobs=-1, verbose=1)(
-        delayed(relax_step_by_step)(path) for path in structure_dir_path_list
-    )
+    if once:
+        _ = Parallel(n_jobs=-1, verbose=1)(
+            delayed(run_lammps)(path, "02", output_dir_id)
+            for path in structure_dir_path_list
+        )
+    else:
+        _ = Parallel(n_jobs=-1, verbose=1)(
+            delayed(relax_step_by_step)(path) for path in structure_dir_path_list
+        )
