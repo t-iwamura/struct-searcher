@@ -77,8 +77,13 @@ def generate(system_name, n_atom) -> None:
 @click.option(
     "--ftol", type=float, required=True, help="The tolerance for global force vector."
 )
+@click.option(
+    "--output_dir_id",
+    required=True,
+    help="The ID of output directory.",
+)
 @no_type_check
-def change_config(structure_ids, ftol) -> None:
+def change_config(structure_ids, ftol, output_dir_id) -> None:
     """Change the configuration of LAMMPS for specific structures"""
     # Read formula info
     m = re.match(
@@ -112,7 +117,11 @@ def change_config(structure_ids, ftol) -> None:
     )
 
     write_job_script(
-        elements, n_atom_for_each_element, begin_sid=structure_ids[0], relax_once=True
+        elements,
+        n_atom_for_each_element,
+        begin_sid=structure_ids[0],
+        relax_once=True,
+        output_dir_id=output_dir_id,
     )
 
 

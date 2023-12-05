@@ -342,7 +342,9 @@ def create_lammps_command_file(
     return content
 
 
-def create_job_script(job_name: str, first_sid: int, relax_once: bool = False) -> str:
+def create_job_script(
+    job_name: str, first_sid: int, relax_once: bool = False, output_dir_id: str = "01"
+) -> str:
     """Create job script
 
     Args:
@@ -350,6 +352,7 @@ def create_job_script(job_name: str, first_sid: int, relax_once: bool = False) -
         first_sid (int): The ID of first structure.
         relax_once (bool, optional): Whether to relax just once or not.
             Defaults to False.
+        output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
 
     Returns:
         str: The content of a job script.
@@ -361,7 +364,10 @@ def create_job_script(job_name: str, first_sid: int, relax_once: bool = False) -
         ["{", str(first_sid).zfill(5), "..", str(last_sid).zfill(5), "}"]
     )
     if relax_once:
-        command = f"struct-searcher relax-by-mlp {dir_pattern} --once"
+        command = (
+            f"struct-searcher relax-by-mlp {dir_pattern} --once "
+            f"--output_dir_id {output_dir_id}"
+        )
     else:
         command = f"struct-searcher relax-by-mlp {dir_pattern}"
 

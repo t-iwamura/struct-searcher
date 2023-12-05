@@ -73,6 +73,7 @@ def write_job_script(
     n_atom_for_each_element: List[int],
     begin_sid: int,
     relax_once: bool = False,
+    output_dir_id: str = "01",
 ) -> None:
     """Write job script
 
@@ -82,6 +83,7 @@ def write_job_script(
         begin_sid (int): The begin ID of a structure.
         relax_once (bool, optional): Whether to relax just once or not.
             Defaults to False.
+        output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
     """
     # Make job_scripts directory
     formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
@@ -95,7 +97,10 @@ def write_job_script(
     output_dir_path.mkdir()
 
     content = create_job_script(
-        job_name=formula_dir_path.name, first_sid=begin_sid, relax_once=relax_once
+        job_name=formula_dir_path.name,
+        first_sid=begin_sid,
+        relax_once=relax_once,
+        output_dir_id=output_dir_id,
     )
     job_script_path = output_dir_path / "job.sh"
     with job_script_path.open("w") as f:
