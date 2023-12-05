@@ -69,7 +69,10 @@ def generate_input_files_for_relaxation(
 
 
 def write_job_script(
-    elements: List[str], n_atom_for_each_element: List[int], begin_sid: int
+    elements: List[str],
+    n_atom_for_each_element: List[int],
+    begin_sid: int,
+    relax_once: bool = False,
 ) -> None:
     """Write job script
 
@@ -77,6 +80,8 @@ def write_job_script(
         elements (List[str]): List of element included in system.
         n_atom_for_each_element (List[int]): The number of atoms for each element.
         begin_sid (int): The begin ID of a structure.
+        relax_once (bool, optional): Whether to relax just once or not.
+            Defaults to False.
     """
     # Make job_scripts directory
     formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
@@ -89,9 +94,47 @@ def write_job_script(
     output_dir_path = job_scripts_dir_path / str(begin_jid).zfill(3)
     output_dir_path.mkdir()
 
-    content = create_job_script(job_name=formula_dir_path.name, first_sid=begin_sid)
+    content = create_job_script(
+        job_name=formula_dir_path.name, first_sid=begin_sid, relax_once=relax_once
+    )
     job_script_path = output_dir_path / "job.sh"
     with job_script_path.open("w") as f:
+        f.write(content)
+
+
+def generate_new_lammps_command_file(
+    structure_dir_path: Path,
+    ftol: float,
+    elements: List[str],
+    n_atom_for_each_element: List[int],
+    potential_file: str,
+) -> None:
+    """Generate new lammps command file
+
+    Args:
+        structure_dir_path (Path): Object of structure directory.
+        ftol (float): The tolerance for global force vector.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+        potential_file (str): Path to a potential file.
+    """
+    # Make output directory
+    begin_oid = calc_begin_id_of_dir(structure_dir_path, n_digit=2)
+    output_dir_path = structure_dir_path / str(begin_oid).zfill(2)
+    output_dir_path.mkdir()
+
+    # Write lammps command file
+    content = create_lammps_command_file(
+        potential_file,
+        elements,
+        n_atom_for_each_element,
+        output_dir_path,
+        ftol,
+        relaxation_id="02",
+        input_dir_path=structure_dir_path / "01",
+    )
+    command_file_path = output_dir_path / "in_02.lammps"
+    with command_file_path.open("w") as f:
         f.write(content)
 
 

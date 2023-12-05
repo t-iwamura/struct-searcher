@@ -1,12 +1,15 @@
 import json
+import re
 from math import pi
 from pathlib import Path
+from typing import no_type_check
 
 import click
 from joblib import Parallel, delayed
 
 from struct_searcher.bin import (
     generate_input_files_for_relaxation,
+    generate_new_lammps_command_file,
     relax_step_by_step,
     write_job_script,
 )
@@ -66,6 +69,50 @@ def generate(system_name, n_atom) -> None:
         )
 
         write_job_script(elements, n_atom_for_each_element, begin_sid)
+
+
+@main.command()
+@click.argument("structure_ids", nargs=-1)
+@click.option(
+    "--ftol", type=float, required=True, help="The tolerance for global force vector."
+)
+@no_type_check
+def change_config(structure_ids, ftol) -> None:
+    """Change the configuration of LAMMPS for specific structures"""
+    # Read formula info
+    m = re.match(
+        r"/.+/data/outputs/(\D+-\D+)/n_atom_\d+/(\D+\d+-\D+\d+).*", str(Path.cwd())
+    )
+    system_name = m.group(1)
+    formula = m.group(2)
+    elements = list(re.match(r"(\D+)\d+-(\D+)\d+", formula).groups())
+    n_atom_for_each_element = [
+        int(n) for n in re.match(r"\D+(\d+)-\D+(\d+)", formula).groups()
+    ]
+
+    # Check a recommended potential for system
+    potential_id_json_path = POTENTIALS_DIR_PATH / "potential_id.json"
+    with potential_id_json_path.open("r") as f:
+        potential_ids = json.load(f)
+    potential_file_path = (
+        POTENTIALS_DIR_PATH / system_name / potential_ids[system_name] / "mlp.lammps"
+    )
+
+    multi_start_dir_path = Path.cwd() / "multi_start"
+    _ = Parallel(n_jobs=-1, verbose=1)(
+        delayed(generate_new_lammps_command_file)(
+            multi_start_dir_path / structure_id,
+            ftol,
+            elements,
+            n_atom_for_each_element,
+            str(potential_file_path),
+        )
+        for structure_id in structure_ids
+    )
+
+    write_job_script(
+        elements, n_atom_for_each_element, begin_sid=structure_ids[0], relax_once=True
+    )
 
 
 @main.command()
