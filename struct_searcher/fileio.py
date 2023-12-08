@@ -234,6 +234,7 @@ def create_lammps_command_file(
     output_dir_path: Path,
     ftol: float,
     relaxation_id: str = "01",
+    input_dir_path: Optional[Path] = None,
 ) -> str:
     """Create lammps command file
 
@@ -244,14 +245,19 @@ def create_lammps_command_file(
         output_dir_path (Path): Path object of output directory.
         ftol (float): The tolerance for global force vector.
         relaxation_id (str, optional): The ID of relaxation. Defaults to '01'.
+        input_dir_path (Optional[Path], optional): Object of input directory.
+            Defaults to None.
 
     Returns:
         str: The content of lammps command file.
     """
+    if input_dir_path is None:
+        input_dir_path = output_dir_path
+
     # Convert relative path to absolute path
     potential_file = str(Path(potential_file).resolve())
     initial_struct_file = str(
-        output_dir_path.resolve() / f"initial_structure_{relaxation_id}"
+        input_dir_path.resolve() / f"initial_structure_{relaxation_id}"
     )
     final_struct_file = str(
         output_dir_path.resolve() / f"final_structure_{relaxation_id}"
@@ -336,12 +342,17 @@ def create_lammps_command_file(
     return content
 
 
-def create_job_script(job_name: str, first_sid: int) -> str:
+def create_job_script(
+    job_name: str, first_sid: int, relax_once: bool = False, output_dir_id: str = "01"
+) -> str:
     """Create job script
 
     Args:
         job_name (str): The name of a job.
         first_sid (int): The ID of first structure.
+        relax_once (bool, optional): Whether to relax just once or not.
+            Defaults to False.
+        output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
 
     Returns:
         str: The content of a job script.
@@ -352,6 +363,13 @@ def create_job_script(job_name: str, first_sid: int) -> str:
     dir_pattern = "".join(
         ["{", str(first_sid).zfill(5), "..", str(last_sid).zfill(5), "}"]
     )
+    if relax_once:
+        command = (
+            f"struct-searcher relax-by-mlp {dir_pattern} --once "
+            f"--output_dir_id {output_dir_id}"
+        )
+    else:
+        command = f"struct-searcher relax-by-mlp {dir_pattern}"
 
     lines = [
         "#!/bin/zsh",
@@ -364,7 +382,7 @@ def create_job_script(job_name: str, first_sid: int) -> str:
         ". ~/.zprofile",
         ". ~/.zshrc",
         "pyenv activate structural_search",
-        f"struct-searcher relax-by-mlp {dir_pattern}",
+        command,
         "",
     ]
     content = "\n".join(lines)

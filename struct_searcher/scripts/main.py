@@ -1,13 +1,17 @@
 import json
+import re
 from math import pi
 from pathlib import Path
+from typing import no_type_check
 
 import click
 from joblib import Parallel, delayed
 
 from struct_searcher.bin import (
     generate_input_files_for_relaxation,
+    generate_new_lammps_command_file,
     relax_step_by_step,
+    run_lammps,
     write_job_script,
 )
 from struct_searcher.data import load_atom_info
@@ -70,7 +74,70 @@ def generate(system_name, n_atom) -> None:
 
 @main.command()
 @click.argument("structure_ids", nargs=-1)
-def relax_by_mlp(structure_ids) -> None:
+@click.option(
+    "--ftol", type=float, required=True, help="The tolerance for global force vector."
+)
+@click.option(
+    "--output_dir_id",
+    required=True,
+    help="The ID of output directory.",
+)
+@no_type_check
+def change_config(structure_ids, ftol, output_dir_id) -> None:
+    """Change the configuration of LAMMPS for specific structures"""
+    # Read formula info
+    m = re.match(
+        r"\/.+\/data\/outputs\/(\D+-\D+)\/csp\/n_atom_\d+\/(\D+\d+-\D+\d+).*",
+        str(Path.cwd()),
+    )
+    system_name = m.group(1)
+    formula = m.group(2)
+    elements = list(re.match(r"(\D+)\d+-(\D+)\d+", formula).groups())
+    n_atom_for_each_element = [
+        int(n) for n in re.match(r"\D+(\d+)-\D+(\d+)", formula).groups()
+    ]
+
+    # Check a recommended potential for system
+    potential_id_json_path = POTENTIALS_DIR_PATH / "potential_id.json"
+    with potential_id_json_path.open("r") as f:
+        potential_ids = json.load(f)
+    potential_file_path = (
+        POTENTIALS_DIR_PATH / system_name / potential_ids[system_name] / "mlp.lammps"
+    )
+
+    multi_start_dir_path = Path.cwd() / "multi_start"
+    _ = Parallel(n_jobs=-1, verbose=1)(
+        delayed(generate_new_lammps_command_file)(
+            multi_start_dir_path / structure_id,
+            ftol,
+            elements,
+            n_atom_for_each_element,
+            str(potential_file_path),
+        )
+        for structure_id in structure_ids
+    )
+
+    write_job_script(
+        elements,
+        n_atom_for_each_element,
+        begin_sid=int(structure_ids[0]),
+        relax_once=True,
+        output_dir_id=output_dir_id,
+    )
+
+
+@main.command()
+@click.argument("structure_ids", nargs=-1)
+@click.option(
+    "--once/--no-once", show_default=True, help="Whether to relax just once or not."
+)
+@click.option(
+    "--output_dir_id",
+    default="01",
+    show_default=True,
+    help="The ID of output directory.",
+)
+def relax_by_mlp(structure_ids, once, output_dir_id) -> None:
     """Relax multiple structures by polymlp"""
     structural_search_dir_path = Path.cwd().parent.parent.resolve() / "multi_start"
     structure_dir_path_list = [
@@ -78,6 +145,12 @@ def relax_by_mlp(structure_ids) -> None:
     ]
 
     # Run relaxation of multiple structures by polymlp
-    _ = Parallel(n_jobs=-1, verbose=1)(
-        delayed(relax_step_by_step)(path) for path in structure_dir_path_list
-    )
+    if once:
+        _ = Parallel(n_jobs=-1, verbose=1)(
+            delayed(run_lammps)(path, "02", output_dir_id)
+            for path in structure_dir_path_list
+        )
+    else:
+        _ = Parallel(n_jobs=-1, verbose=1)(
+            delayed(relax_step_by_step)(path) for path in structure_dir_path_list
+        )

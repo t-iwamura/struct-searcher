@@ -52,7 +52,7 @@ def calc_begin_id_of_dir(root_dir_path: Path, n_digit: int) -> int:
     existing_ids = sorted(
         int(p.name)
         for p in root_dir_path.glob("*")
-        if re.search(rf".*/\d{{{n_digit}}}", str(p))
+        if p.is_dir() and re.search(rf".*\/\d{{{n_digit}}}", str(p))
     )
     if len(existing_ids) == 0:
         begin_id = 1
