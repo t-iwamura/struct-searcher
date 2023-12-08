@@ -87,7 +87,8 @@ def change_config(structure_ids, ftol, output_dir_id) -> None:
     """Change the configuration of LAMMPS for specific structures"""
     # Read formula info
     m = re.match(
-        r"/.+/data/outputs/(\D+-\D+)/n_atom_\d+/(\D+\d+-\D+\d+).*", str(Path.cwd())
+        r"\/.+\/data\/outputs\/(\D+-\D+)\/csp\/n_atom_\d+\/(\D+\d+-\D+\d+).*",
+        str(Path.cwd()),
     )
     system_name = m.group(1)
     formula = m.group(2)
@@ -119,7 +120,7 @@ def change_config(structure_ids, ftol, output_dir_id) -> None:
     write_job_script(
         elements,
         n_atom_for_each_element,
-        begin_sid=structure_ids[0],
+        begin_sid=int(structure_ids[0]),
         relax_once=True,
         output_dir_id=output_dir_id,
     )
