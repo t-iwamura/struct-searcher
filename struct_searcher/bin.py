@@ -1,4 +1,5 @@
 import shutil
+import traceback
 from pathlib import Path
 from typing import Dict, List
 
@@ -179,10 +180,10 @@ def run_lammps(
 
         # Extract quantity
         calc_stats["energy"] = lmp.extract_variable("pe", "all", 0)
-    except Exception as e:
+    except Exception:
         err_log_path = output_dir_path / "err.log"
         with err_log_path.open("a") as f:
-            print(e, file=f)
+            print(traceback.format_exc(), file=f)
 
     return calc_stats
 
@@ -221,11 +222,11 @@ def run_lammps_as_one_cycle(
         result_status = check_previous_relaxation(
             calc_stats, output_dir_path, relaxation_id
         )
-    except Exception as e:
+    except Exception:
         result_status = "stop"
         err_log_path = output_dir_path / "err.log"
         with err_log_path.open("a") as f:
-            print(e, file=f)
+            print(traceback.format_exc(), file=f)
 
     return result_status
 
@@ -266,10 +267,10 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
         struct_file_path = output_dir_path / "initial_structure_02"
         with struct_file_path.open("w") as f:
             f.write(content)
-    except Exception as e:
+    except Exception:
         err_log_path = output_dir_path / "err.log"
         with err_log_path.open("a") as f:
-            print(e, file=f)
+            print(traceback.format_exc(), file=f)
         return
 
     # Do hard relaxation
