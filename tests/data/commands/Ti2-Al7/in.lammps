@@ -18,7 +18,7 @@ neigh_modify delay 0 every 1 check yes one 100000 page 1000000
 
 # Do relaxation with a bunch of degrees of freedom
 fix ftri all box/relax tri 0.0
-minimize 0.0 1e-08 50000 500000
+minimize 0.0 1e-08 5000 50000
 
 # Output final structure
 write_data /home/iwamura/struct-searcher/tests/data/structures/final_structure_01

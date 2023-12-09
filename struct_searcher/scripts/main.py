@@ -152,5 +152,6 @@ def relax_by_mlp(structure_ids, once, output_dir_id) -> None:
         )
     else:
         _ = Parallel(n_jobs=-1, verbose=1)(
-            delayed(relax_step_by_step)(path) for path in structure_dir_path_list
+            delayed(relax_step_by_step)(path, output_dir_id)
+            for path in structure_dir_path_list
         )

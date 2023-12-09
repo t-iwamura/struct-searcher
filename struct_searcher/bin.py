@@ -1,5 +1,6 @@
+import shutil
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from lammps import lammps
 from pymatgen.io.lammps.data import LammpsData
@@ -10,9 +11,12 @@ from struct_searcher.fileio import (
     create_lammps_command_file,
     create_lammps_struct_file_from_structure,
     create_sample_struct_file,
-    parse_lammps_log,
 )
-from struct_searcher.utils import calc_begin_id_of_dir, create_formula_dir_path
+from struct_searcher.utils import (
+    calc_begin_id_of_dir,
+    check_previous_relaxation,
+    create_formula_dir_path,
+)
 
 
 def generate_input_files_for_relaxation(
@@ -145,14 +149,18 @@ def generate_new_lammps_command_file(
 
 def run_lammps(
     structure_dir_path: Path, relaxation_id: str = "00", output_dir_id: str = "01"
-) -> None:
+) -> Dict[str, float]:
     """Run LAMMPS
 
     Args:
         structure_dir_path (Path): Path object of structure directory.
         relaxation_id (str, optional): The ID of relaxation. Defaults to '00'.
         output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
+
+    Returns:
+        Dict[str, float]: Dict about the calculation result.
     """
+    calc_stats = {"energy": 1e10}
     try:
         # Settings about log
         output_dir_path = structure_dir_path / output_dir_id
@@ -166,41 +174,110 @@ def run_lammps(
             command_file_path = output_dir_path / f"in_{relaxation_id}.lammps"
         print(str(command_file_path))
         lmp.file(str(command_file_path))
+
+        # Extract quantity
+        calc_stats["energy"] = lmp.extract_variable("pe", "all", 0)
     except Exception as e:
         err_log_path = output_dir_path / "err.log"
-        with err_log_path.open("w") as f:
+        with err_log_path.open("a") as f:
             print(e, file=f)
 
+    return calc_stats
 
-def relax_step_by_step(structure_dir_path: Path) -> None:
+
+def run_lammps_as_one_cycle(
+    structure_dir_path: Path, output_dir_id: str, relaxation_id: str, cycle_id: str
+) -> str:
+    """Run LAMMPS as one cycle
+
+    Args:
+        structure_dir_path (Path): Object of structure directory.
+        output_dir_id (str): The ID of output directory.
+        relaxation_id (str): The ID of relaxation.
+        cycle_id (str): The ID of relaxation cycle.
+
+    Returns:
+        str: The result status of LAMMPS calculation.
+    """
+    calc_stats = run_lammps(structure_dir_path, relaxation_id, output_dir_id)
+
+    # Copy log file and dumped structure file
+    output_dir_path = structure_dir_path / output_dir_id
+    old_log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
+    new_log_file_path = output_dir_path / f"log_{relaxation_id}-{cycle_id}.lammps"
+    shutil.copy(old_log_file_path, new_log_file_path)
+
+    old_final_structure_path = output_dir_path / f"final_structure_{relaxation_id}"
+    if old_final_structure_path.exists():
+        new_final_structure_path = (
+            output_dir_path / f"final_structure_{relaxation_id}-{cycle_id}"
+        )
+        shutil.copy(old_final_structure_path, new_final_structure_path)
+
+    # Judge if relaxation should be continued or not
+    try:
+        result_status = check_previous_relaxation(
+            calc_stats, output_dir_path, relaxation_id
+        )
+    except Exception as e:
+        result_status = "stop"
+        err_log_path = output_dir_path / "err.log"
+        with err_log_path.open("a") as f:
+            print(e, file=f)
+
+    return result_status
+
+
+def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
     """Relax a structure step by step
 
     Args:
         structure_dir_path (Path): Object of structure directory.
+        output_dir_id (str): The ID of output directory.
     """
-    # Do easy relaxation
-    run_lammps(structure_dir_path, relaxation_id="01")
+    max_iteration = 10
 
-    calc_stats = parse_lammps_log(str(structure_dir_path / "log_01.lammps"))
-    if calc_stats["criterion"] != "force tolerance":
-        return
+    # Do easy relaxation
+    for i in range(max_iteration):
+        result_status = run_lammps_as_one_cycle(
+            structure_dir_path,
+            output_dir_id,
+            relaxation_id="01",
+            cycle_id=str(i + 1).zfill(2),
+        )
+
+        if result_status == "stop":
+            return
+        elif result_status != "unfinished":
+            break
 
     # Refine the structure after 1st relaxation
     try:
+        output_dir_path = structure_dir_path / output_dir_id
         structure = LammpsData.from_file(
-            str(structure_dir_path / "final_structure_01"), atom_style="atomic"
+            str(output_dir_path / "final_structure_01"), atom_style="atomic"
         ).structure
         analyzer = SpacegroupAnalyzer(structure, symprec=1e-05, angle_tolerance=-1.0)
         refined_structure = analyzer.get_refined_structure()
 
         content = create_lammps_struct_file_from_structure(refined_structure)
-        struct_file_path = structure_dir_path / "initial_structure_02"
+        struct_file_path = output_dir_path / "initial_structure_02"
         with struct_file_path.open("w") as f:
             f.write(content)
     except Exception as e:
-        err_log_path = structure_dir_path / "err.log"
-        with err_log_path.open("w") as f:
+        err_log_path = output_dir_path / "err.log"
+        with err_log_path.open("a") as f:
             print(e, file=f)
+        return
 
     # Do hard relaxation
-    run_lammps(structure_dir_path, relaxation_id="02")
+    for i in range(max_iteration):
+        result_status = run_lammps_as_one_cycle(
+            structure_dir_path,
+            output_dir_id,
+            relaxation_id="02",
+            cycle_id=str(i + 1).zfill(2),
+        )
+
+        if result_status != "unfinished":
+            return

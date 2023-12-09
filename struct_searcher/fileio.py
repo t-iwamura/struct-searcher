@@ -270,8 +270,8 @@ def create_lammps_command_file(
 
     # Settings about relaxation
     etol = 0.0
-    maxiter = 50000
-    maxeval = 500000
+    maxiter = 5000
+    maxeval = 50000
     pressure = 0.0
 
     lines = [
