@@ -35,7 +35,12 @@ def main() -> None:
 @click.option(
     "-n", "--n_atom", type=int, required=True, help="The number of atoms in unitcell."
 )
-def generate(system_name, n_atom) -> None:
+@click.option(
+    "--output_dir_id",
+    required=True,
+    help="The ID of output directory.",
+)
+def generate(system_name, n_atom, output_dir_id) -> None:
     """Generate 1000 sample structures for all the compositions"""
     # Check a recommended potential for system
     potential_id_json_path = POTENTIALS_DIR_PATH / "potential_id.json"
@@ -65,6 +70,7 @@ def generate(system_name, n_atom) -> None:
                 str(potential_file_path),
                 str(begin_sid + i).zfill(5),
                 g_max,
+                output_dir_id,
             )
             for i in range(n_structure)
         )

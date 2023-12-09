@@ -25,6 +25,7 @@ def generate_input_files_for_relaxation(
     potential_file: str,
     structure_id: str,
     g_max: float,
+    output_dir_id: str,
 ) -> None:
     """Generate input files for relaxation
 
@@ -34,10 +35,11 @@ def generate_input_files_for_relaxation(
         potential_file (str): Path to a potential file.
         structure_id (str): The ID of a sample structure.
         g_max (float): The parameter to control volume maximum.
+        output_dir_id (str): The ID of output directory.
     """
     # Make output directory
     formula_dir_path = create_formula_dir_path(elements, n_atom_for_each_element)
-    output_dir_path = formula_dir_path / "multi_start" / structure_id
+    output_dir_path = formula_dir_path / "multi_start" / structure_id / output_dir_id
     output_dir_path.mkdir(parents=True)
 
     # Write sample structure file
