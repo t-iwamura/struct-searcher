@@ -153,17 +153,23 @@ def run_lammps(
         relaxation_id (str, optional): The ID of relaxation. Defaults to '00'.
         output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
     """
-    # Settings about log
-    output_dir_path = structure_dir_path / output_dir_id
-    log_file_path = output_dir_path / "log.lammps"
-    if relaxation_id != "00":
-        log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
-    lmp = lammps(cmdargs=["-log", str(log_file_path), "-screen", "none"])
+    try:
+        # Settings about log
+        output_dir_path = structure_dir_path / output_dir_id
+        log_file_path = output_dir_path / "log.lammps"
+        if relaxation_id != "00":
+            log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
+        lmp = lammps(cmdargs=["-log", str(log_file_path), "-screen", "none"])
 
-    command_file_path = output_dir_path / "in.lammps"
-    if relaxation_id != "00":
-        command_file_path = output_dir_path / f"in_{relaxation_id}.lammps"
-    lmp.file(str(command_file_path))
+        command_file_path = output_dir_path / "in.lammps"
+        if relaxation_id != "00":
+            command_file_path = output_dir_path / f"in_{relaxation_id}.lammps"
+        print(str(command_file_path))
+        lmp.file(str(command_file_path))
+    except Exception as e:
+        err_log_path = output_dir_path / "err.log"
+        with err_log_path.open("w") as f:
+            print(e, file=f)
 
 
 def relax_step_by_step(structure_dir_path: Path) -> None:
@@ -172,15 +178,15 @@ def relax_step_by_step(structure_dir_path: Path) -> None:
     Args:
         structure_dir_path (Path): Object of structure directory.
     """
+    # Do easy relaxation
+    run_lammps(structure_dir_path, relaxation_id="01")
+
+    calc_stats = parse_lammps_log(str(structure_dir_path / "log_01.lammps"))
+    if calc_stats["criterion"] != "force tolerance":
+        return
+
+    # Refine the structure after 1st relaxation
     try:
-        # Do easy relaxation
-        run_lammps(structure_dir_path, relaxation_id="01")
-
-        calc_stats = parse_lammps_log(str(structure_dir_path / "log_01.lammps"))
-        if calc_stats["criterion"] != "force tolerance":
-            return
-
-        # Refine the structure after 1st relaxation
         structure = LammpsData.from_file(
             str(structure_dir_path / "final_structure_01"), atom_style="atomic"
         ).structure
@@ -191,10 +197,10 @@ def relax_step_by_step(structure_dir_path: Path) -> None:
         struct_file_path = structure_dir_path / "initial_structure_02"
         with struct_file_path.open("w") as f:
             f.write(content)
-
-        # Do hard relaxation
-        run_lammps(structure_dir_path, relaxation_id="02")
     except Exception as e:
         err_log_path = structure_dir_path / "err.log"
         with err_log_path.open("w") as f:
             print(e, file=f)
+
+    # Do hard relaxation
+    run_lammps(structure_dir_path, relaxation_id="02")
