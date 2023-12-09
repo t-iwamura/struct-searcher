@@ -47,8 +47,3 @@ def potential_file() -> str:
         TESTS_DIR_PATH / "data" / "potentials" / "Ti-Al" / "gtinv-411" / "mlp.lammps"
     )
     return str(potential_file_path)
-
-
-@pytest.fixture()
-def calc_stats() -> Dict[str, str]:
-    return {"criterion": "max iterations"}

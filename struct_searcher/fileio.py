@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -270,8 +270,8 @@ def create_lammps_command_file(
 
     # Settings about relaxation
     etol = 0.0
-    maxiter = 50000
-    maxeval = 500000
+    maxiter = 5000
+    maxeval = 50000
     pressure = 0.0
 
     lines = [
@@ -390,24 +390,25 @@ def create_job_script(
     return content
 
 
-def parse_lammps_log(log_file: str) -> Dict[str, str]:
+def parse_lammps_log(log_file: str) -> str:
     """Parse LAMMPS log file
 
     Args:
         log_file (str): The path to log.lammps.
 
     Returns:
-        Dict[str, str]: Dict storing calculation stats.
+        str: The result status of LAMMPS calculation.
     """
-    pattern = re.compile(r".*Stopping criterion = (.*)")
+    success_pattern = re.compile(r".*Stopping criterion = +force +tolerance.*")
+    alpha_pattern = re.compile(r".*Stopping criterion = .+(is|are) +zero.*")
+    result_status = "unfinished"
     with open(log_file) as f:
         for line in f:
-            m = pattern.match(line)
-            if m:
+            if success_pattern.match(line):
+                result_status = "success"
                 break
-    assert m is not None
+            elif alpha_pattern.match(line):
+                result_status = "alpha"
+                break
 
-    calc_stats = {}
-    calc_stats["criterion"] = m.group(1).rstrip()
-
-    return calc_stats
+    return result_status

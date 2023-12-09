@@ -1,6 +1,6 @@
 import random
 from math import acos, cos, degrees, radians, sqrt
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from numpy.typing import NDArray
 from pymatgen.core import Lattice, Structure
@@ -136,6 +136,7 @@ def has_enough_space_between_atoms(
     frac_coords: NDArray,
     elements: List[str],
     n_atom_for_each_element: List[int],
+    dtol: Optional[float] = None,
 ) -> bool:
     """Check if a structure has enough space between atoms
 
@@ -144,6 +145,8 @@ def has_enough_space_between_atoms(
         frac_coords (NDArray): The fractional coordinates of the atoms.
         elements (List[str]): List of element in a structure.
         n_atom_for_each_element (List[int]): The number of atoms for each element.
+        dtol (Optional[float], optional): The tolerance for neighbor distance.
+            Defaults to None.
 
     Returns:
         bool: The result of a check.
@@ -164,7 +167,8 @@ def has_enough_space_between_atoms(
             if distances[i, j] < min_distance:
                 min_distance = distances[i, j]
 
-    atom_info = load_atom_info()
-    d = max(atom_info[e]["distance"] for e in elements)
+    if dtol is None:
+        atom_info = load_atom_info()
+        dtol = 0.75 * max(atom_info[e]["distance"] for e in elements)
 
-    return min_distance >= 0.75 * d
+    return min_distance >= dtol
