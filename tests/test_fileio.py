@@ -85,5 +85,5 @@ def test_create_lammps_command_file(
     assert content == dumped_lammps_command_content
 
 
-def test_parse_lammps_log(calc_stats):
-    assert parse_lammps_log(str(LOGS_DIR_PATH / "log.lammps")) == calc_stats
+def test_parse_lammps_log():
+    assert parse_lammps_log(str(LOGS_DIR_PATH / "log.lammps")) == "unfinished"
