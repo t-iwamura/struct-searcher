@@ -61,12 +61,12 @@ def create_lammps_struct_file(
     xhi: float,
     yhi: float,
     zhi: float,
-    xy: float,
-    xz: float,
-    yz: float,
     frac_coords: NDArray,
     elements: List[str],
     n_atom_for_each_element: List[int],
+    xy: float = 0.0,
+    xz: float = 0.0,
+    yz: float = 0.0,
 ) -> str:
     """Create structure file for LAMMPS
 
@@ -74,13 +74,13 @@ def create_lammps_struct_file(
         xhi (float): The parameter about system.
         yhi (float): The parameter about system.
         zhi (float): The parameter about system.
-        xy (float): The tilt parameter.
-        xz (float): The tilt parameter.
-        yz (float): The tilt parameter.
         frac_coords (NDArray): The fractional coordinates of all the atoms.
             The shape is (n_atom, 3).
         elements (List[str]): List of element included in system.
         n_atom_for_each_element (List[int]): The number of atoms for each element.
+        xy (float, optional): The tilt parameter Defaults to 0.0.
+        xz (float, optional): The tilt parameter Defaults to 0.0.
+        yz (float, optional): The tilt parameter Defaults to 0.0.
 
     Returns:
         str: The content of a structure file.
@@ -104,9 +104,11 @@ def create_lammps_struct_file(
         f"0.0 {yhi:.15f} ylo yhi",
         f"0.0 {zhi:.15f} zlo zhi",
         "",
-        f"{xy:.15f} {xz:.15f} {yz:.15f} xy xz yz",
-        "",
     ]
+
+    if xy != 0.0 or xz != 0.0 or yz != 0.0:
+        lines.append(f"{xy:.15f} {xz:.15f} {yz:.15f} xy xz yz")
+        lines.append("")
 
     # Create Masses section
     masses_section = ["Masses", ""]
@@ -161,12 +163,12 @@ def create_lammps_struct_file_from_structure(structure: Structure) -> str:
         system_params["xhi"],
         system_params["yhi"],
         system_params["zhi"],
-        system_params["xy"],
-        system_params["xz"],
-        system_params["yz"],
         structure.frac_coords,
         elements,
         n_atom_for_each_element,
+        system_params["xy"],
+        system_params["xz"],
+        system_params["yz"],
     )
     return content
 
@@ -217,12 +219,12 @@ def create_sample_struct_file(
         system_params["xhi"],
         system_params["yhi"],
         system_params["zhi"],
-        system_params["xy"],
-        system_params["xz"],
-        system_params["yz"],
         frac_coords,
         elements,
         n_atom_for_each_element,
+        system_params["xy"],
+        system_params["xz"],
+        system_params["yz"],
     )
     return content
 

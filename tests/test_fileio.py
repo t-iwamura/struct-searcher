@@ -32,24 +32,46 @@ def dumped_lammps_struct_content(request):
 
 
 @pytest.mark.parametrize(
-    ("n_atom_for_each_elements", "dumped_lammps_struct_content"),
-    [([7, 4], "Ti7-Al4"), ([11, 0], "Ti"), ([0, 11], "Al")],
+    ("n_atom_for_each_elements", "dumped_lammps_struct_content", "is_orthogonal"),
+    [
+        ([7, 4], "Ti7-Al4", False),
+        ([11, 0], "Ti", False),
+        ([0, 11], "Al", False),
+        ([3, 1], "Ti3-Al1", True),
+    ],
     indirect=["dumped_lammps_struct_content"],
 )
 def test_create_lammps_struct_file(
-    system_params, frac_coords, n_atom_for_each_elements, dumped_lammps_struct_content
+    system_params,
+    frac_coords,
+    n_atom_for_each_elements,
+    dumped_lammps_struct_content,
+    is_orthogonal,
 ):
-    content = create_lammps_struct_file(
-        system_params["xhi"],
-        system_params["yhi"],
-        system_params["zhi"],
-        system_params["xy"],
-        system_params["xz"],
-        system_params["yz"],
-        frac_coords,
-        ["Ti", "Al"],
-        n_atom_for_each_elements,
-    )
+    if is_orthogonal:
+        content = create_lammps_struct_file(
+            system_params["xhi"],
+            system_params["yhi"],
+            system_params["zhi"],
+            frac_coords[:4],
+            ["Ti", "Al"],
+            n_atom_for_each_elements,
+            0.0,
+            0.0,
+            0.0,
+        )
+    else:
+        content = create_lammps_struct_file(
+            system_params["xhi"],
+            system_params["yhi"],
+            system_params["zhi"],
+            frac_coords,
+            ["Ti", "Al"],
+            n_atom_for_each_elements,
+            system_params["xy"],
+            system_params["xz"],
+            system_params["yz"],
+        )
     assert content == dumped_lammps_struct_content
 
 
