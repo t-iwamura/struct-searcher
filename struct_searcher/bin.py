@@ -179,7 +179,10 @@ def run_lammps(
         lmp.file(str(command_file_path))
 
         # Extract quantity
-        calc_stats["energy"] = lmp.extract_variable("pe", "all", 0)
+        n_atom = lmp.get_natoms()
+        lmp.command("variable energy equal pe")
+        lmp.command("run 0")
+        calc_stats["energy"] = lmp.extract_variable("energy", "all", 0) / n_atom
     except Exception:
         err_log_path = output_dir_path / "err.log"
         with err_log_path.open("a") as f:

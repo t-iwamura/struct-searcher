@@ -288,7 +288,7 @@ def create_lammps_command_file(
         "# What to monitor during minimization",
         "thermo 1",
         "thermo_style custom step temp pe etotal press fnorm",
-        "thermo_modify norm no",
+        "thermo_modify norm yes",
         "",
         "# Rebuild neighbor list at every timestep",
         "neigh_modify delay 0 every 1 check yes one 100000 page 1000000",
