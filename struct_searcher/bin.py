@@ -224,6 +224,15 @@ def run_lammps_as_one_cycle(
         )
         shutil.copy(old_final_structure_path, new_final_structure_path)
 
+    # Copy and prepare initial structure
+    old_initial_structure_path = output_dir_path / f"initial_structure_{relaxation_id}"
+    new_initial_structure_path = (
+        output_dir_path / f"initial_structure_{relaxation_id}-{cycle_id}"
+    )
+    shutil.copy(old_initial_structure_path, new_initial_structure_path)
+    if old_final_structure_path.exists():
+        shutil.copy(old_final_structure_path, old_initial_structure_path)
+
     # Judge if relaxation should be continued or not
     try:
         result_status = check_previous_relaxation(
