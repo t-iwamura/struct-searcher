@@ -85,8 +85,10 @@ def check_previous_relaxation(
     result_status = parse_lammps_log(
         str(output_dir_path / f"log_{relaxation_id}.lammps")
     )
-    if calc_stats["energy"] >= 1e08 or calc_stats["energy"] <= -1e03:
-        result_status = "stop"
+    if calc_stats["energy_per_atom"] >= 1e08:
+        result_status = "STOP: total energy is too high"
+    elif calc_stats["energy_per_atom"] <= -1e03:
+        result_status = "STOP: total energy is too low"
 
     # Check volume
     structure = LammpsData.from_file(
@@ -99,10 +101,10 @@ def check_previous_relaxation(
     max_volume = 200 * 4 * pi * (0.5 * d) ** 3 / 3
 
     if structure.volume >= max_volume:
-        result_status = "stop"
+        result_status = "STOP: volume is too large"
 
     # Check nearest neighbor distance
-    if result_status != "stop":
+    if "STOP" not in result_status:
         n_atom_for_each_element = [species.count(e) for e in elements]
         if not has_enough_space_between_atoms(
             structure.lattice,
@@ -111,6 +113,6 @@ def check_previous_relaxation(
             n_atom_for_each_element,
             dtol=1e-02,
         ):
-            result_status = "stop"
+            result_status = "STOP: neighbor distance is too small"
 
     return result_status

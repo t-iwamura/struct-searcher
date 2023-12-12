@@ -1,3 +1,4 @@
+import json
 import shutil
 import traceback
 from pathlib import Path
@@ -239,10 +240,28 @@ def run_lammps_as_one_cycle(
             calc_stats, output_dir_path, relaxation_id
         )
     except Exception:
-        result_status = "stop"
+        result_status = "STOP: an error is raised"
         err_log_path = output_dir_path / "err.log"
         with err_log_path.open("a") as f:
             print(traceback.format_exc(), file=f)
+
+    # Save energy and result status
+    json_path = output_dir_path / "calc_stats.json"
+    if json_path.exists():
+        with json_path.open("r") as f:
+            calc_stats_saved = json.load(f)
+
+    if cycle_id == "01":
+        calc_stats_saved[f"energy_{relaxation_id}_per_atom"] = []
+        calc_stats_saved[f"result_status_{relaxation_id}"] = []
+
+    calc_stats_saved[f"energy_{relaxation_id}_per_atom"].append(
+        calc_stats["energy_per_atom"]
+    )
+    calc_stats_saved[f"result_status_{relaxation_id}"].append(result_status)
+
+    with json_path.open("w") as f:
+        json.dump(calc_stats_saved, f, indent=4)
 
     return result_status
 
@@ -265,9 +284,9 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
             cycle_id=str(i + 1).zfill(2),
         )
 
-        if result_status == "stop":
+        if "STOP" in result_status:
             return
-        elif result_status != "unfinished":
+        elif result_status != "UNFINISHED":
             break
 
     # Refine the structure after 1st relaxation
@@ -296,7 +315,7 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
             cycle_id=str(i + 1).zfill(2),
         )
 
-        if result_status != "unfinished":
+        if result_status != "UNFINISHED":
             return
 
 

@@ -137,5 +137,15 @@ def test_create_lammps_command_file(
     assert content == dumped_lammps_command_content
 
 
-def test_parse_lammps_log():
-    assert parse_lammps_log(str(LOGS_DIR_PATH / "log.lammps")) == "unfinished"
+@pytest.fixture()
+def log_file(request):
+    return str(LOGS_DIR_PATH / request.param / "log.lammps")
+
+
+@pytest.mark.parametrize(
+    ("log_file", "expected"),
+    [("01", "UNFINISHED"), ("02", "SUCCESS"), ("03", "ALPHA"), ("04", "ALPHA")],
+    indirect=["log_file"],
+)
+def test_parse_lammps_log(log_file, expected):
+    assert parse_lammps_log(log_file) == expected
