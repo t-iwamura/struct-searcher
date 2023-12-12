@@ -151,40 +151,31 @@ def generate_new_lammps_command_file(
 
 
 def run_lammps(
-    structure_dir_path: Path, relaxation_id: str = "00", output_dir_id: str = "01"
+    command_file: str,
+    log_file: str,
 ) -> Dict[str, float]:
     """Run LAMMPS
 
     Args:
-        structure_dir_path (Path): Path object of structure directory.
-        relaxation_id (str, optional): The ID of relaxation. Defaults to '00'.
-        output_dir_id (str, optional): The ID of output directory. Defaults to '01'.
+        command_file (str): Path to a LAMMPS command file.
+        log_file (str): Path to a LAMMPS log file.
 
     Returns:
         Dict[str, float]: Dict about the calculation result.
     """
     calc_stats = {"energy": 1e10}
     try:
-        # Settings about log
-        output_dir_path = structure_dir_path / output_dir_id
-        log_file_path = output_dir_path / "log.lammps"
-        if relaxation_id != "00":
-            log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
-        lmp = lammps(cmdargs=["-log", str(log_file_path), "-screen", "none"])
-
-        command_file_path = output_dir_path / "in.lammps"
-        if relaxation_id != "00":
-            command_file_path = output_dir_path / f"in_{relaxation_id}.lammps"
-        print(str(command_file_path))
-        lmp.file(str(command_file_path))
+        lmp = lammps(cmdargs=["-log", log_file, "-screen", "none"])
+        lmp.file(command_file)
 
         # Extract quantity
         n_atom = lmp.get_natoms()
         lmp.command("variable energy equal pe")
         lmp.command("run 0")
-        calc_stats["energy"] = lmp.extract_variable("energy", "all", 0) / n_atom
+        calc_stats["energy"] = lmp.extract_variable("energy", None, 0)
+        calc_stats["energy_per_atom"] = calc_stats["energy"] / n_atom
     except Exception:
-        err_log_path = output_dir_path / "err.log"
+        err_log_path = Path(log_file).parent / "err.log"
         with err_log_path.open("a") as f:
             print(traceback.format_exc(), file=f)
 
@@ -192,23 +183,25 @@ def run_lammps(
 
 
 def run_lammps_as_one_cycle(
-    structure_dir_path: Path, output_dir_id: str, relaxation_id: str, cycle_id: str
+    output_dir_path: Path,
+    relaxation_id: str,
+    cycle_id: str,
 ) -> str:
     """Run LAMMPS as one cycle
 
     Args:
-        structure_dir_path (Path): Object of structure directory.
-        output_dir_id (str): The ID of output directory.
+        output_dir_path (Path): Object of output directory.
         relaxation_id (str): The ID of relaxation.
         cycle_id (str): The ID of relaxation cycle.
 
     Returns:
         str: The result status of LAMMPS calculation.
     """
-    calc_stats = run_lammps(structure_dir_path, relaxation_id, output_dir_id)
+    command_file_path = output_dir_path / f"in_{relaxation_id}.lammps"
+    log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
+    calc_stats = run_lammps(str(command_file_path), str(log_file_path))
 
     # Copy log file and dumped structure file
-    output_dir_path = structure_dir_path / output_dir_id
     old_log_file_path = output_dir_path / f"log_{relaxation_id}.lammps"
     new_log_file_path = output_dir_path / f"log_{relaxation_id}-{cycle_id}.lammps"
     shutil.copy(old_log_file_path, new_log_file_path)
@@ -242,12 +235,12 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
         output_dir_id (str): The ID of output directory.
     """
     max_iteration = 10
+    output_dir_path = structure_dir_path / output_dir_id
 
     # Do easy relaxation
     for i in range(max_iteration):
         result_status = run_lammps_as_one_cycle(
-            structure_dir_path,
-            output_dir_id,
+            output_dir_path,
             relaxation_id="01",
             cycle_id=str(i + 1).zfill(2),
         )
@@ -259,7 +252,6 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
 
     # Refine the structure after 1st relaxation
     try:
-        output_dir_path = structure_dir_path / output_dir_id
         structure = LammpsData.from_file(
             str(output_dir_path / "final_structure_01"), atom_style="atomic"
         ).structure
@@ -279,8 +271,7 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
     # Do hard relaxation
     for i in range(max_iteration):
         result_status = run_lammps_as_one_cycle(
-            structure_dir_path,
-            output_dir_id,
+            output_dir_path,
             relaxation_id="02",
             cycle_id=str(i + 1).zfill(2),
         )
