@@ -167,7 +167,7 @@ def relax_by_mlp(structure_ids, once, output_dir_id) -> None:
 
 @main.command()
 @click.argument("system_name")
-def check_diatom_energy(system_name) -> None:
+def diatom(system_name) -> None:
     """Check if diatom energy is desirable"""
     elements = read_elements(system_name)
 
