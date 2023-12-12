@@ -1,17 +1,23 @@
 import shutil
 import traceback
 from pathlib import Path
-from typing import Dict, List
+from tempfile import NamedTemporaryFile
+from typing import Dict, List, Tuple
 
+import numpy as np
+from joblib import Parallel, delayed
 from lammps import lammps
+from numpy.typing import NDArray
 from pymatgen.io.lammps.data import LammpsData
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from struct_searcher.fileio import (
     create_job_script,
     create_lammps_command_file,
+    create_lammps_struct_file,
     create_lammps_struct_file_from_structure,
     create_sample_struct_file,
+    create_static_lammps_command_file,
 )
 from struct_searcher.utils import (
     calc_begin_id_of_dir,
@@ -283,3 +289,83 @@ def relax_step_by_step(structure_dir_path: Path, output_dir_id: str) -> None:
 
         if result_status != "unfinished":
             return
+
+
+def _calc_diatom_energy(
+    potential_file: str,
+    d: float,
+    elements: List[str],
+    n_atom_for_each_element: List[int],
+    dmax: float,
+) -> float:
+    """Internal implementation of calc_diatom_energy()
+
+    Args:
+        potential_file (str): Path to a potential file.
+        d (float): The interatomic distance.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+        dmax (float): The maximum of interatomic distance.
+
+    Returns:
+        float: Total energy when keeping the distance between two atoms.
+    """
+    xhi = dmax + 1
+    frac_coords = np.array([[0.1, 0.1, 0.1], [0.1 + d, 0.1, 0.1]])
+
+    # Write structure file for LAMMPS
+    struct_file_object = NamedTemporaryFile(mode="w")
+    content = create_lammps_struct_file(
+        xhi, xhi, xhi, frac_coords, elements, n_atom_for_each_element
+    )
+    struct_file_object.write(content)
+    struct_file_object.seek(0)
+
+    # Write LAMMPS command file
+    command_file_object = NamedTemporaryFile(mode="w")
+    content = create_static_lammps_command_file(
+        potential_file,
+        elements,
+        n_atom_for_each_element,
+        struct_file=struct_file_object.name,
+    )
+    command_file_object.write(content)
+    command_file_object.seek(0)
+
+    calc_stats = run_lammps(command_file_object.name, save_log=False)
+
+    command_file_object.close()
+    struct_file_object.close()
+
+    return calc_stats["energy_per_atom"]
+
+
+def calc_diatom_energy(
+    potential_file: str, elements: List[str], n_atom_for_each_element: List[int]
+) -> Tuple[NDArray, NDArray]:
+    """Calculate diatom energy
+
+    Args:
+        potential_file (str): Path to a potential file.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+
+    Returns:
+        Tuple[NDArray, NDArray]: NumPy array of interatomic distance and
+            NumPy array of total energy.
+    """
+    dmax = 6.0
+    dmin = 0.02
+    dsteps = 300
+    darray = np.linspace(dmin, dmax, dsteps)
+
+    energies = np.array(
+        Parallel(n_jobs=-1, verbose=1)(
+            delayed(_calc_diatom_energy)(
+                potential_file, d, elements, n_atom_for_each_element, dmax
+            )
+            for d in darray
+        )
+    )
+
+    return darray, energies
