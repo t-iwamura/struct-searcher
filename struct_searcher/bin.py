@@ -152,20 +152,25 @@ def generate_new_lammps_command_file(
 
 def run_lammps(
     command_file: str,
-    log_file: str,
+    log_file: str = "log.lammps",
+    save_log: bool = True,
 ) -> Dict[str, float]:
     """Run LAMMPS
 
     Args:
         command_file (str): Path to a LAMMPS command file.
-        log_file (str): Path to a LAMMPS log file.
+        log_file (str, optional): Path to a LAMMPS log file. Defaults to "log.lammps".
+        save_log (bool, optional): Whether to save log or not. Defaults to True.
 
     Returns:
         Dict[str, float]: Dict about the calculation result.
     """
     calc_stats = {"energy": 1e10}
     try:
-        lmp = lammps(cmdargs=["-log", log_file, "-screen", "none"])
+        if save_log:
+            lmp = lammps(cmdargs=["-log", log_file, "-screen", "none"])
+        else:
+            lmp = lammps(cmdargs=["-log", "none", "-screen", "none"])
         lmp.file(command_file)
 
         # Extract quantity
