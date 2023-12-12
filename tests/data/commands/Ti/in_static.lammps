@@ -1,0 +1,9 @@
+units metal
+box tilt large
+atom_style atomic
+
+boundary m m m
+read_data Ti/lammps_structure
+
+pair_style polymlp
+pair_coeff * * /home/iwamura/struct-searcher/tests/data/potentials/Ti-Al/gtinv-411/mlp.lammps Ti

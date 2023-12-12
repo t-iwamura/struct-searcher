@@ -5,6 +5,7 @@ import pytest
 from struct_searcher.fileio import (
     create_lammps_command_file,
     create_lammps_struct_file,
+    create_static_lammps_command_file,
     parse_lammps_log,
     read_elements,
 )
@@ -32,25 +33,76 @@ def dumped_lammps_struct_content(request):
 
 
 @pytest.mark.parametrize(
-    ("n_atom_for_each_elements", "dumped_lammps_struct_content"),
-    [([7, 4], "Ti7-Al4"), ([11, 0], "Ti"), ([0, 11], "Al")],
+    ("n_atom_for_each_elements", "dumped_lammps_struct_content", "is_orthogonal"),
+    [
+        ([7, 4], "Ti7-Al4", False),
+        ([11, 0], "Ti", False),
+        ([0, 11], "Al", False),
+        ([3, 1], "Ti3-Al1", True),
+    ],
     indirect=["dumped_lammps_struct_content"],
 )
 def test_create_lammps_struct_file(
-    system_params, frac_coords, n_atom_for_each_elements, dumped_lammps_struct_content
+    system_params,
+    frac_coords,
+    n_atom_for_each_elements,
+    dumped_lammps_struct_content,
+    is_orthogonal,
 ):
-    content = create_lammps_struct_file(
-        system_params["xhi"],
-        system_params["yhi"],
-        system_params["zhi"],
-        system_params["xy"],
-        system_params["xz"],
-        system_params["yz"],
-        frac_coords,
-        ["Ti", "Al"],
-        n_atom_for_each_elements,
-    )
+    if is_orthogonal:
+        content = create_lammps_struct_file(
+            system_params["xhi"],
+            system_params["yhi"],
+            system_params["zhi"],
+            frac_coords[:4],
+            ["Ti", "Al"],
+            n_atom_for_each_elements,
+            0.0,
+            0.0,
+            0.0,
+        )
+    else:
+        content = create_lammps_struct_file(
+            system_params["xhi"],
+            system_params["yhi"],
+            system_params["zhi"],
+            frac_coords,
+            ["Ti", "Al"],
+            n_atom_for_each_elements,
+            system_params["xy"],
+            system_params["xz"],
+            system_params["yz"],
+        )
     assert content == dumped_lammps_struct_content
+
+
+@pytest.fixture()
+def dumped_static_lammps_command_content(request):
+    lammps_command_file_path = COMMANDS_DIR_PATH / request.param / "in_static.lammps"
+    with lammps_command_file_path.open("r") as f:
+        content = f.read()
+    return content
+
+
+@pytest.mark.parametrize(
+    ("n_atom_for_each_element", "struct_file", "dumped_static_lammps_command_content"),
+    [
+        ([7, 4], "Ti7-Al4/lammps_structure", "Ti7-Al4"),
+        ([11, 0], "Ti/lammps_structure", "Ti"),
+        ([0, 11], "Al/lammps_structure", "Al"),
+    ],
+    indirect=["dumped_static_lammps_command_content"],
+)
+def test_create_static_lammps_command_file(
+    potential_file,
+    n_atom_for_each_element,
+    struct_file,
+    dumped_static_lammps_command_content,
+):
+    content = create_static_lammps_command_file(
+        potential_file, ["Ti", "Al"], n_atom_for_each_element, struct_file
+    )
+    assert content == dumped_static_lammps_command_content
 
 
 @pytest.fixture()

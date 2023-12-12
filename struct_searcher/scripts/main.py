@@ -5,9 +5,11 @@ from pathlib import Path
 from typing import no_type_check
 
 import click
+import numpy as np
 from joblib import Parallel, delayed
 
 from struct_searcher.bin import (
+    calc_diatom_energy,
     generate_input_files_for_relaxation,
     generate_new_lammps_command_file,
     relax_step_by_step,
@@ -160,4 +162,45 @@ def relax_by_mlp(structure_ids, once, output_dir_id) -> None:
         _ = Parallel(n_jobs=-1, verbose=1)(
             delayed(relax_step_by_step)(path, output_dir_id)
             for path in structure_dir_path_list
+        )
+
+
+@main.command()
+@click.argument("system_name")
+def check_diatom_energy(system_name) -> None:
+    """Check if diatom energy is desirable"""
+    elements = read_elements(system_name)
+
+    potential_pool_path = POTENTIALS_DIR_PATH / system_name
+    for potential_path in potential_pool_path.glob("*/mlp.lammps"):
+        # Make output directory
+        output_dir_path = potential_path.parent / "diatom_energy"
+        if not output_dir_path.exists():
+            output_dir_path.mkdir()
+
+        # Calculate diatom energy between different atoms
+        darray, energies = calc_diatom_energy(
+            str(potential_path), elements, n_atom_for_each_element=[1, 1]
+        )
+        np.savetxt(
+            output_dir_path / f"{elements[0]}-{elements[1]}.txt",
+            np.stack((darray, energies), axis=1),
+        )
+
+        # Calculate diatom energy between 1st type atoms
+        darray, energies = calc_diatom_energy(
+            str(potential_path), elements, n_atom_for_each_element=[2, 0]
+        )
+        np.savetxt(
+            output_dir_path / f"{elements[0]}-{elements[0]}.txt",
+            np.stack((darray, energies), axis=1),
+        )
+
+        # Calculate diatom energy between 2nd type atoms
+        darray, energies = calc_diatom_energy(
+            str(potential_path), elements, n_atom_for_each_element=[0, 2]
+        )
+        np.savetxt(
+            output_dir_path / f"{elements[1]}-{elements[1]}.txt",
+            np.stack((darray, energies), axis=1),
         )
