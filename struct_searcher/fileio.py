@@ -442,14 +442,14 @@ def parse_lammps_log(log_file: str) -> str:
     """
     success_pattern = re.compile(r".*Stopping criterion = +force +tolerance.*")
     alpha_pattern = re.compile(r".*Stopping criterion = .+(is|are) +zero.*")
-    result_status = "unfinished"
+    result_status = "UNFINISHED"
     with open(log_file) as f:
         for line in f:
             if success_pattern.match(line):
-                result_status = "success"
+                result_status = "SUCCESS"
                 break
             elif alpha_pattern.match(line):
-                result_status = "alpha"
+                result_status = "ALPHA"
                 break
 
     return result_status
