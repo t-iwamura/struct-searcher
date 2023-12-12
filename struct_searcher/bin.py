@@ -250,6 +250,8 @@ def run_lammps_as_one_cycle(
     if json_path.exists():
         with json_path.open("r") as f:
             calc_stats_saved = json.load(f)
+    else:
+        calc_stats_saved = {}
 
     if cycle_id == "01":
         calc_stats_saved[f"energy_{relaxation_id}_per_atom"] = []
