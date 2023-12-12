@@ -85,9 +85,9 @@ def check_previous_relaxation(
     result_status = parse_lammps_log(
         str(output_dir_path / f"log_{relaxation_id}.lammps")
     )
-    if calc_stats["energy"] >= 1e08:
+    if calc_stats["energy_per_atom"] >= 1e08:
         result_status = "STOP: total energy is too high"
-    elif calc_stats["energy"] <= -1e03:
+    elif calc_stats["energy_per_atom"] <= -1e03:
         result_status = "STOP: total energy is too low"
 
     # Check volume
