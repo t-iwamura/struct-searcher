@@ -229,6 +229,45 @@ def create_sample_struct_file(
     return content
 
 
+def create_static_lammps_command_file(
+    potential_file: str,
+    elements: List[str],
+    n_atom_for_each_element: List[int],
+    struct_file: str,
+) -> str:
+    """Create LAMMPS command file for static calculation
+
+    Args:
+        potential_file (str): Path to a potential file.
+        elements (List[str]): List of element included in system.
+        n_atom_for_each_element (List[int]): The number of atoms for each element.
+        struct_file (str): Path to a structure file.
+
+    Returns:
+        str: The content of LAMMPS command file.
+    """
+    # Choose the element which exists
+    elements_str = " ".join(
+        e for e, n in zip(elements, n_atom_for_each_element) if n != 0
+    )
+
+    lines = [
+        "units metal",
+        "box tilt large",
+        "atom_style atomic",
+        "",
+        "boundary m m m",
+        f"read_data {struct_file}",
+        "",
+        "pair_style polymlp",
+        f"pair_coeff * * {potential_file} {elements_str}",
+        "",
+    ]
+    content = "\n".join(lines)
+
+    return content
+
+
 def create_lammps_command_file(
     potential_file: str,
     elements: List[str],

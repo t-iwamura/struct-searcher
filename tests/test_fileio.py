@@ -5,6 +5,7 @@ import pytest
 from struct_searcher.fileio import (
     create_lammps_command_file,
     create_lammps_struct_file,
+    create_static_lammps_command_file,
     parse_lammps_log,
     read_elements,
 )
@@ -73,6 +74,35 @@ def test_create_lammps_struct_file(
             system_params["yz"],
         )
     assert content == dumped_lammps_struct_content
+
+
+@pytest.fixture()
+def dumped_static_lammps_command_content(request):
+    lammps_command_file_path = COMMANDS_DIR_PATH / request.param / "in_static.lammps"
+    with lammps_command_file_path.open("r") as f:
+        content = f.read()
+    return content
+
+
+@pytest.mark.parametrize(
+    ("n_atom_for_each_element", "struct_file", "dumped_static_lammps_command_content"),
+    [
+        ([7, 4], "Ti7-Al4/lammps_structure", "Ti7-Al4"),
+        ([11, 0], "Ti/lammps_structure", "Ti"),
+        ([0, 11], "Al/lammps_structure", "Al"),
+    ],
+    indirect=["dumped_static_lammps_command_content"],
+)
+def test_create_static_lammps_command_file(
+    potential_file,
+    n_atom_for_each_element,
+    struct_file,
+    dumped_static_lammps_command_content,
+):
+    content = create_static_lammps_command_file(
+        potential_file, ["Ti", "Al"], n_atom_for_each_element, struct_file
+    )
+    assert content == dumped_static_lammps_command_content
 
 
 @pytest.fixture()
