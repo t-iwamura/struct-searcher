@@ -44,7 +44,7 @@ def dumped_lammps_struct_content(request):
 )
 def test_create_lammps_struct_file(
     system_params,
-    frac_coords,
+    cart_coords,
     n_atom_for_each_elements,
     dumped_lammps_struct_content,
     is_orthogonal,
@@ -54,7 +54,7 @@ def test_create_lammps_struct_file(
             system_params["xhi"],
             system_params["yhi"],
             system_params["zhi"],
-            frac_coords[:4],
+            cart_coords[:4],
             ["Ti", "Al"],
             n_atom_for_each_elements,
             0.0,
@@ -66,7 +66,7 @@ def test_create_lammps_struct_file(
             system_params["xhi"],
             system_params["yhi"],
             system_params["zhi"],
-            frac_coords,
+            cart_coords,
             ["Ti", "Al"],
             n_atom_for_each_elements,
             system_params["xy"],
