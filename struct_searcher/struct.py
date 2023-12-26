@@ -1,9 +1,13 @@
+import json
 import random
 from math import acos, cos, degrees, radians, sqrt
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from numpy.typing import NDArray
 from pymatgen.core import Lattice, Structure
+from pymatgen.io.lammps.data import LammpsData
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from struct_searcher.data import load_atom_info
 
@@ -172,3 +176,42 @@ def has_enough_space_between_atoms(
         dtol = 0.75 * max(atom_info[e]["distance"] for e in elements)
 
     return min_distance >= dtol
+
+
+def find_same_structure(
+    calc_dir_path: Path, energies: List[float], space_groups: List[str]
+) -> Tuple[int, float, str]:
+    """Find the same structure
+
+    Args:
+        calc_dir_path (Path): Object of calculation directory.
+        energies (List[float]): Energies of unique structures.
+        space_groups (List[str]): Space groups of unique structures.
+
+    Returns:
+        Tuple[int, float, str]: Index of the same structure, its energy and space group.
+    """
+    # Read energy
+    json_path = calc_dir_path / "calc_stats.json"
+    with json_path.open("r") as f:
+        calc_stats = json.load(f)
+    energy = calc_stats["energy_02_per_atom"][-1]
+
+    # Check the space group of a structure
+    struct_file_path = calc_dir_path / "final_structure_02"
+    structure = LammpsData.from_file(
+        str(struct_file_path), atom_style="atomic"
+    ).structure
+    analyzer = SpacegroupAnalyzer(structure, symprec=1e-05, angle_tolerance=-1.0)
+    space_group = analyzer.get_space_group_symbol()
+
+    # Check if the same structure is already added or not
+    sid = -1
+    n_structure = len(energies)
+    for i in range(n_structure):
+        energy_diff = abs(energy - energies[i])
+        if energy_diff < 1e-05 and space_group == space_groups[i]:
+            sid = i
+            break
+
+    return sid, energy, space_group

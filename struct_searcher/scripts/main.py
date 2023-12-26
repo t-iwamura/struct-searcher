@@ -9,6 +9,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from struct_searcher.bin import (
+    analyze_duplicate_structures,
     calc_diatom_energy,
     generate_input_files_for_relaxation,
     generate_new_lammps_command_file,
@@ -204,3 +205,11 @@ def diatom(system_name) -> None:
             output_dir_path / f"{elements[1]}-{elements[1]}.txt",
             np.stack((darray, energies), axis=1),
         )
+
+
+@main.command()
+@click.argument("structure_ids", nargs=-1)
+def analyze(structure_ids) -> None:
+    """Analyze structures relaxed by polymlp"""
+    multi_start_dir_path = Path.cwd().resolve() / "multi_start"
+    analyze_duplicate_structures(structure_ids, root_dir_path=multi_start_dir_path)
