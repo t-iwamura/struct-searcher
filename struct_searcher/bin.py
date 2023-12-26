@@ -20,6 +20,7 @@ from struct_searcher.fileio import (
     create_sample_struct_file,
     create_static_lammps_command_file,
 )
+from struct_searcher.struct import find_same_structure
 from struct_searcher.utils import (
     calc_begin_id_of_dir,
     check_previous_relaxation,
@@ -399,3 +400,100 @@ def calc_diatom_energy(
     )
 
     return darray, energies
+
+
+def extract_unique_structures(
+    structure_ids: List[str],
+    root_dir_path: Path,
+) -> Tuple[List[float], List[str], List[List[str]]]:
+    """Extract unique structures from relaxed structures
+
+    Args:
+        structure_ids (List[str]): List of structure ID.
+        root_dir_path (Path): Object of root directory.
+
+    Returns:
+        Tuple[List[float], List[str], List[List[str]]]: Energies of unique structures,
+            space group symbol of unique structures and IDs of duplicate structures.
+    """
+    energies: List[float] = []
+    space_groups: List[str] = []
+    duplicate_structure_ids: List[List[str]] = []
+    for structure_id in structure_ids:
+        calc_dir_path = root_dir_path / structure_id / "01"
+        struct_file_path = calc_dir_path / "final_structure_02"
+        if not struct_file_path.exists():
+            continue
+
+        sid, energy, space_group = find_same_structure(
+            calc_dir_path, energies, space_groups
+        )
+        if sid == -1:
+            continue
+        else:
+            duplicate_structure_ids[sid].append(structure_id)
+
+        energies.append(energy)
+        space_groups.append(space_group)
+        duplicate_structure_ids.append([structure_id])
+
+    return energies, space_groups, duplicate_structure_ids
+
+
+def analyze_duplicate_structures(
+    structure_ids: List[str],
+    root_dir_path: Path,
+) -> None:
+    """Analyze if structures are duplicate or not
+
+    Args:
+        structure_ids (List[str]): List of structure ID.
+        root_dir_path (Path): Object of root directory.
+    """
+    energies, space_groups, duplicate_structure_ids = extract_unique_structures(
+        structure_ids, root_dir_path
+    )
+
+    # Sort objects in terms of energy
+    indices = [i for i in range(len(energies))]
+    indices.sort(key=lambda i: energies[i])
+    energies = [energies[i] for i in indices]
+    space_groups = [space_groups[i] for i in indices]
+    duplicate_structure_ids = [duplicate_structure_ids[i] for i in indices]
+
+    dft_dir_path = root_dir_path.parent.resolve() / "dft"
+    if not dft_dir_path.exists():
+        dft_dir_path.mkdir()
+
+    # Write result as output files
+    n_structure = len(energies)
+    for i in range(n_structure):
+        # Make output directory
+        begin_sid = calc_begin_id_of_dir(dft_dir_path, n_digit=5)
+        output_dir_path = dft_dir_path / str(begin_sid + i).zfill(5)
+        output_dir_path.mkdir()
+
+        duplicate_structure_ids[i].append("")
+        duplicate_structure_ids_txt_path = (
+            output_dir_path / "duplicate_structure_ids.txt"
+        )
+        with duplicate_structure_ids_txt_path.open("w") as f:
+            f.write("\n".join(duplicate_structure_ids[i]))
+
+        struct_info = {"energy": energies[i], "space_group": space_groups[i]}
+        struct_info_json_path = output_dir_path / "struct_info.json"
+        with struct_info_json_path.open("w") as f:
+            json.dump(struct_info, f, indent=4)
+
+        # Refine a structure
+        struct_file_path = (
+            root_dir_path / duplicate_structure_ids[i][0] / "01" / "final_structure_02"
+        )
+        structure = LammpsData.from_file(
+            str(struct_file_path), atom_style="atomic"
+        ).structure
+        analyzer = SpacegroupAnalyzer(structure, symprec=1e-05, angle_tolerance=-1.0)
+        structure = analyzer.get_refined_structure()
+
+        poscar_path = output_dir_path / "POSCAR"
+        structure.to(str(poscar_path), fmt="poscar")
